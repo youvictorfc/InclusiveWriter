@@ -5,10 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { analyzeText } from '@/lib/openai';
 import { useState } from 'react';
-import { type AnalysisResult } from '@shared/schema';
+import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
 import { Loader2, Save } from 'lucide-react';
 
-export function TextEditor({ onAnalysis }: { onAnalysis: (result: AnalysisResult) => void }) {
+interface TextEditorProps {
+  onAnalysis: (result: AnalysisResult) => void;
+  mode: AnalysisMode;
+}
+
+export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [wordCount, setWordCount] = useState(0);
 
@@ -36,7 +41,7 @@ export function TextEditor({ onAnalysis }: { onAnalysis: (result: AnalysisResult
     setAnalyzing(true);
     try {
       const content = editor.getText();
-      const result = await analyzeText(content);
+      const result = await analyzeText(content, mode);
 
       // Clear existing highlights
       editor.commands.unsetHighlight();

@@ -5,6 +5,7 @@ import { z } from "zod";
 export const analyses = pgTable("analyses", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
+  mode: text("mode").notNull(),
   analysis: jsonb("analysis").notNull(),
 });
 
@@ -14,6 +15,8 @@ export const insertAnalysisSchema = createInsertSchema(analyses).omit({
 
 export type Analysis = typeof analyses.$inferSelect;
 export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
+
+export type AnalysisMode = 'language' | 'policy' | 'recruitment';
 
 export type AnalysisResult = {
   issues: Array<{

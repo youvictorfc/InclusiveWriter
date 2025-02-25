@@ -1,0 +1,27 @@
+UINCLUDE - Inclusive language
+Adoli is an inclusive writing tool designed to promote diversity, equity, and inclusion in written content. Here's an overview of how Adoli supports inclusive writing:
+
+1. Bias-Free Language: Uinclude helps users identify and replace biased or exclusionary language in their writing. It offers suggestions to replace potentially offensive or insensitive terms with more inclusive alternatives.
+
+2. Gender-Neutral Language: The tool encourages the use of gender-neutral language to ensure that written content is inclusive and does not reinforce gender stereotypes or biases.
+
+3. Accessibility Check: Uinclude checks written content for accessibility issues, ensuring that it can be easily understood and navigated by individuals with disabilities. It provides recommendations for improving accessibility, such as using alt text for images.
+
+4. Ethnic and Cultural Sensitivity: Uinclude flags potentially insensitive references to ethnicity, race, or culture and suggests alternatives that are more respectful and inclusive.
+
+5. Disability Awareness: The tool promotes disability awareness by highlighting instances where language or terminology may unintentionally perpetuate stereotypes or stigmas related to disabilities.
+
+6. LGBTQ+ Inclusivity: Uinclude encourages the use of inclusive language when referring to LGBTQ+ individuals and issues, helping writers avoid unintentional marginalization.
+
+7. Inclusive Pronouns: The tool provides guidance on using inclusive pronouns like "they/them" and "ze/hir" to acknowledge and respect non-binary and gender-diverse individuals.
+
+8. Diverse Representation: Uinclude encourages writers to include diverse perspectives, voices, and experiences in their content to reflect a broader range of backgrounds and identities.
+
+9. Cultural Appropriation Awareness: It helps users recognize instances of cultural appropriation in their writing and provides guidance on how to avoid perpetuating harmful stereotypes.
+
+10. Customizable Guidelines: Uinclude allows organizations and users to customize writing guidelines based on their specific inclusivity goals and preferences.
+
+11. Learning Resources: The tool offers educational resources and explanations to help users understand the importance of inclusive writing and the impact of language choices.
+
+12. Real-Time Feedback: Uinclude provides real-time feedback and suggestions as users write, making it easy to make inclusive language choices during the writing process.
+
