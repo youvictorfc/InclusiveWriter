@@ -47,6 +47,16 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
     setAnalyzing(true);
     try {
       const content = editor.getText();
+
+      if (!content.trim()) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Please enter some text to analyze.",
+        });
+        return;
+      }
+
       const result = await analyzeText(content, mode);
 
       // Clear existing highlights
@@ -73,10 +83,20 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       });
     } catch (error) {
       console.error('Analysis failed:', error);
+
+      let errorMessage = "There was an error analyzing your text. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes('429')) {
+          errorMessage = "The analysis service is currently at capacity. Please try again in a few minutes.";
+        } else if (error.message.includes('Content cannot be empty')) {
+          errorMessage = "Please enter some text to analyze.";
+        }
+      }
+
       toast({
         variant: "destructive",
         title: "Analysis Failed",
-        description: "There was an error analyzing your text. Please try again.",
+        description: errorMessage,
       });
     } finally {
       setAnalyzing(false);
@@ -88,9 +108,9 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       <div className="rounded-lg border bg-card">
         <div className="border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="text-muted-foreground"
               onClick={() => {
                 if (editor) {
@@ -111,15 +131,15 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
           </div>
         </div>
         <div className="p-4">
-          <EditorContent 
-            editor={editor} 
+          <EditorContent
+            editor={editor}
             className="min-h-[400px] focus-within:outline-none"
             placeholder="Enter your text here to analyze (10,000 words max)..."
           />
         </div>
       </div>
       <div className="flex justify-end">
-        <Button 
+        <Button
           onClick={analyze}
           disabled={analyzing || !editor?.getText().trim() || wordCount > 10000}
           className="w-[140px]"

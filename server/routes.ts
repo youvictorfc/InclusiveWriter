@@ -46,7 +46,6 @@ const getGuidelinesForMode = (mode: AnalysisMode): string => {
   }
 };
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 export async function registerRoutes(app: Express) {
   app.post("/api/analyze", async (req, res) => {
     try {
@@ -61,72 +60,89 @@ export async function registerRoutes(app: Express) {
         throw new Error('Valid mode is required');
       }
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert at identifying non-inclusive language. ${getGuidelinesForMode(mode as AnalysisMode)} 
-            Analyze the text and identify specific instances of non-inclusive language.
-            For each issue found, provide:
-            1. The exact problematic text
-            2. A suggested alternative
-            3. A clear explanation of why this needs to be changed
-            4. The severity level (low, medium, or high)
-
-            Return the results in this exact JSON format:
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
             {
-              "issues": [
-                {
-                  "text": "exact text found",
-                  "startIndex": 0,
-                  "endIndex": 0,
-                  "suggestion": "suggested replacement",
-                  "reason": "explanation of why this needs to be changed",
-                  "severity": "low" | "medium" | "high"
-                }
-              ]
-            }`
-          },
-          {
-            role: "user",
-            content
+              role: "system",
+              content: `You are an expert at identifying non-inclusive language. ${getGuidelinesForMode(mode as AnalysisMode)} 
+              Analyze the text and identify specific instances of non-inclusive language.
+              For each issue found, provide:
+              1. The exact problematic text
+              2. A suggested alternative
+              3. A clear explanation of why this needs to be changed
+              4. The severity level (low, medium, or high)
+
+              Return the results in this exact JSON format:
+              {
+                "issues": [
+                  {
+                    "text": "exact text found",
+                    "startIndex": 0,
+                    "endIndex": 0,
+                    "suggestion": "suggested replacement",
+                    "reason": "explanation of why this needs to be changed",
+                    "severity": "low" | "medium" | "high"
+                  }
+                ]
+              }`
+            },
+            {
+              role: "user",
+              content
+            }
+          ],
+          response_format: { type: "json_object" }
+        });
+
+        if (!response.choices[0].message.content) {
+          throw new Error("No response from OpenAI");
+        }
+
+        const analysisResult = JSON.parse(response.choices[0].message.content);
+
+        // Create the analysis result with correct structure
+        const validatedResult = {
+          issues: analysisResult.issues.map((issue: any) => ({
+            text: issue.text,
+            startIndex: 0, // We'll calculate these on the frontend
+            endIndex: 0,   // since they depend on the actual text placement
+            suggestion: issue.suggestion,
+            reason: issue.reason,
+            severity: issue.severity,
+          }))
+        };
+
+        // Validate the analysis result
+        const validatedAnalysis = await analysisResultSchema.parseAsync(validatedResult);
+
+        const result = await storage.createAnalysis({
+          content,
+          mode,
+          analysis: validatedAnalysis
+        });
+
+        res.json(result);
+      } catch (error) {
+        // Handle OpenAI specific errors
+        if (error instanceof OpenAI.APIError) {
+          if (error.status === 429) {
+            return res.status(429).json({
+              error: "The analysis service is currently at capacity. Please try again in a few minutes."
+            });
           }
-        ],
-        response_format: { type: "json_object" }
-      });
-
-      if (!response.choices[0].message.content) {
-        throw new Error("No response from OpenAI");
+          return res.status(error.status || 500).json({
+            error: "There was an issue with the analysis service. Please try again."
+          });
+        }
+        throw error; // Re-throw other errors to be caught by outer catch
       }
-
-      const analysisResult = JSON.parse(response.choices[0].message.content);
-
-      // Create the analysis result with correct structure
-      const validatedResult = {
-        issues: analysisResult.issues.map((issue: any) => ({
-          text: issue.text,
-          startIndex: 0, // We'll calculate these on the frontend
-          endIndex: 0,   // since they depend on the actual text placement
-          suggestion: issue.suggestion,
-          reason: issue.reason,
-          severity: issue.severity,
-        }))
-      };
-
-      // Validate the analysis result
-      const validatedAnalysis = await analysisResultSchema.parseAsync(validatedResult);
-
-      const result = await storage.createAnalysis({
-        content,
-        mode,
-        analysis: validatedAnalysis
-      });
-
-      res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);
-      res.status(400).json({ error: error instanceof Error ? error.message : 'Analysis failed' });
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : 'Analysis failed' 
+      });
     }
   });
 
