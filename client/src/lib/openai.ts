@@ -8,7 +8,17 @@ export async function analyzeText(content: string, mode: AnalysisMode): Promise<
     }
 
     const res = await apiRequest("POST", "/api/analyze", { content, mode });
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      throw new Error("Failed to parse analysis response");
+    }
+
+    // Check if there's an error message in the response
+    if (data.error) {
+      throw new Error(data.error);
+    }
 
     // Check if the response has the expected structure
     if (!data.analysis?.issues || !Array.isArray(data.analysis.issues)) {

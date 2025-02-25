@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express) {
 
       try {
         const response = await openai.chat.completions.create({
-          model: "gpt-4o",
+          model: "gpt-4", // Fix model name
           messages: [
             {
               role: "system",
@@ -127,6 +127,7 @@ export async function registerRoutes(app: Express) {
       } catch (error) {
         // Handle OpenAI specific errors
         if (error instanceof OpenAI.APIError) {
+          console.error('OpenAI API Error:', error);
           if (error.status === 429) {
             return res.status(429).json({
               error: "The analysis service is currently at capacity. Please try again in a few minutes."
