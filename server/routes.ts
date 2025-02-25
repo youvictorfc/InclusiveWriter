@@ -50,7 +50,16 @@ const getGuidelinesForMode = (mode: AnalysisMode): string => {
 export async function registerRoutes(app: Express) {
   app.post("/api/analyze", async (req, res) => {
     try {
-      const { content, mode } = await insertAnalysisSchema.parseAsync(req.body);
+      const { content, mode } = req.body;
+
+      // Validate request body
+      if (!content || typeof content !== 'string') {
+        throw new Error('Content is required and must be a string');
+      }
+
+      if (!mode || !['language', 'policy', 'recruitment'].includes(mode)) {
+        throw new Error('Valid mode is required');
+      }
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
