@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express) {
             For each issue found, provide:
             1. The exact problematic text
             2. A suggested alternative
-            3. A clear explanation of why it should be changed
+            3. A clear explanation of why this needs to be changed
             4. The severity level (low, medium, or high)
 
             Return the results in this exact JSON format:
