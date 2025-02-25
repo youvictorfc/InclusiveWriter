@@ -7,6 +7,7 @@ import { analyzeText } from '@/lib/openai';
 import { useState } from 'react';
 import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
 import { Loader2, Save } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
@@ -16,6 +17,7 @@ interface TextEditorProps {
 export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const { toast } = useToast();
 
   const editor = useEditor({
     extensions: [
@@ -48,15 +50,29 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
 
       // Apply new highlights
       result.issues.forEach(issue => {
-        editor.commands.setHighlight({
-          from: issue.startIndex,
-          to: issue.endIndex,
-        });
+        const text = editor.getText();
+        const start = text.indexOf(issue.text);
+        if (start !== -1) {
+          editor.commands.setHighlight({
+            from: start,
+            to: start + issue.text.length,
+          });
+        }
       });
 
       onAnalysis(result);
+
+      toast({
+        title: "Analysis Complete",
+        description: `Found ${result.issues.length} issues to review.`,
+      });
     } catch (error) {
       console.error('Analysis failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: "There was an error analyzing your text. Please try again.",
+      });
     } finally {
       setAnalyzing(false);
     }

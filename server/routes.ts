@@ -57,7 +57,28 @@ export async function registerRoutes(app: Express) {
         messages: [
           {
             role: "system",
-            content: `You are an expert at identifying non-inclusive language. ${getGuidelinesForMode(mode as AnalysisMode)} Return the results in JSON format with the following structure: { issues: [{ text: string, startIndex: number, endIndex: number, suggestion: string, reason: string, severity: 'low' | 'medium' | 'high' }] }`
+            content: `You are an expert at identifying non-inclusive language. ${getGuidelinesForMode(mode as AnalysisMode)} 
+            Analyze the text and identify specific instances of non-inclusive language.
+            For each issue found, provide:
+            1. The exact problematic text
+            2. The start and end position of the text
+            3. A suggested alternative
+            4. A clear explanation of why it should be changed
+            5. The severity level (low, medium, or high)
+
+            Return the results in this exact JSON format:
+            {
+              "issues": [
+                {
+                  "text": "exact text found",
+                  "startIndex": 0,
+                  "endIndex": 10,
+                  "suggestion": "suggested replacement",
+                  "reason": "explanation of why this needs to be changed",
+                  "severity": "low" | "medium" | "high"
+                }
+              ]
+            }`
           },
           {
             role: "user",
