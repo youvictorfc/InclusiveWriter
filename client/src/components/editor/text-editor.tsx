@@ -6,10 +6,11 @@ import { Card } from '@/components/ui/card';
 import { analyzeText } from '@/lib/openai';
 import { useState } from 'react';
 import { type AnalysisResult } from '@shared/schema';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 
 export function TextEditor({ onAnalysis }: { onAnalysis: (result: AnalysisResult) => void }) {
   const [analyzing, setAnalyzing] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
 
   const editor = useEditor({
     extensions: [
@@ -20,33 +21,34 @@ export function TextEditor({ onAnalysis }: { onAnalysis: (result: AnalysisResult
     ],
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none',
+        class: 'min-h-[400px] prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none',
       },
+    },
+    onUpdate: ({ editor }) => {
+      const words = editor.getText().trim().split(/\s+/).length;
+      setWordCount(editor.getText().trim() ? words : 0);
     },
   });
 
   const analyze = async () => {
     if (!editor) return;
-    
+
     setAnalyzing(true);
     try {
       const content = editor.getText();
       const result = await analyzeText(content);
-      
+
       // Clear existing highlights
       editor.commands.unsetHighlight();
-      
+
       // Apply new highlights
       result.issues.forEach(issue => {
         editor.commands.setHighlight({
           from: issue.startIndex,
           to: issue.endIndex,
-          attributes: {
-            class: `bg-${issue.severity === 'high' ? 'red' : issue.severity === 'medium' ? 'yellow' : 'blue'}-200`,
-          },
         });
       });
-      
+
       onAnalysis(result);
     } catch (error) {
       console.error('Analysis failed:', error);
@@ -56,12 +58,32 @@ export function TextEditor({ onAnalysis }: { onAnalysis: (result: AnalysisResult
   };
 
   return (
-    <Card className="w-full">
-      <div className="border-b p-4 flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Content Editor</h2>
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-card">
+        <div className="border-b px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {wordCount} / 10,000 words
+          </div>
+        </div>
+        <div className="p-4">
+          <EditorContent 
+            editor={editor} 
+            className="min-h-[400px] focus-within:outline-none"
+            placeholder="Enter your text here to analyze (10,000 words max)..."
+          />
+        </div>
+      </div>
+      <div className="flex justify-end">
         <Button 
           onClick={analyze}
-          disabled={analyzing || !editor?.getText().trim()}
+          disabled={analyzing || !editor?.getText().trim() || wordCount > 10000}
+          className="w-[140px]"
         >
           {analyzing ? (
             <>
@@ -73,7 +95,6 @@ export function TextEditor({ onAnalysis }: { onAnalysis: (result: AnalysisResult
           )}
         </Button>
       </div>
-      <EditorContent editor={editor} className="min-h-[400px] p-4" />
-    </Card>
+    </div>
   );
 }
