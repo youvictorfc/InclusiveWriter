@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import { type Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
@@ -100,37 +100,58 @@ export async function registerRoutes(app: Express) {
           throw new Error("No response from OpenAI");
         }
 
-        const analysisResult = JSON.parse(response.choices[0].message.content);
+        let analysisResult;
+        try {
+          analysisResult = JSON.parse(response.choices[0].message.content);
+        } catch (parseError) {
+          console.error('Failed to parse OpenAI response:', parseError);
+          throw new Error("Failed to parse analysis response");
+        }
+
+        if (!analysisResult || !Array.isArray(analysisResult.issues)) {
+          console.error('Invalid analysis result structure:', analysisResult);
+          throw new Error("Invalid response format from OpenAI");
+        }
 
         // Create the analysis result with correct structure
         const validatedResult = {
           issues: analysisResult.issues.map((issue: any) => ({
-            text: issue.text,
+            text: issue.text || '',
             startIndex: 0, // We'll calculate these on the frontend
             endIndex: 0,   // since they depend on the actual text placement
-            suggestion: issue.suggestion,
-            reason: issue.reason,
-            severity: issue.severity,
+            suggestion: issue.suggestion || '',
+            reason: issue.reason || '',
+            severity: issue.severity || 'low',
           }))
         };
 
         // Validate the analysis result
-        const validatedAnalysis = await analysisResultSchema.parseAsync(validatedResult);
+        try {
+          const validatedAnalysis = await analysisResultSchema.parseAsync(validatedResult);
 
-        const result = await storage.createAnalysis({
-          content,
-          mode,
-          analysis: validatedAnalysis
-        });
+          const result = await storage.createAnalysis({
+            content,
+            mode,
+            analysis: validatedAnalysis
+          });
 
-        res.json(result);
+          return res.json(result);
+        } catch (validationError) {
+          console.error('Validation error:', validationError);
+          throw new Error("Invalid analysis format");
+        }
       } catch (error) {
         // Handle OpenAI specific errors
         if (error instanceof OpenAI.APIError) {
           console.error('OpenAI API Error:', error);
           if (error.status === 429) {
             return res.status(429).json({
-              error: "The OpenAI API is currently unavailable due to rate limiting. Please try again in a few minutes or contact support if the issue persists."
+              error: "The OpenAI API is currently unavailable due to rate limiting. Please check your plan and billing details."
+            });
+          }
+          if (error.type === 'insufficient_quota') {
+            return res.status(429).json({
+              error: "You have exceeded your OpenAI API quota. Please check your plan and billing details."
             });
           }
           return res.status(error.status || 500).json({

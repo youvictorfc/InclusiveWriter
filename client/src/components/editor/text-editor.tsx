@@ -90,8 +90,10 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       if (!error || (error instanceof Error && !error.message)) {
         errorMessage = "The analysis service encountered an unexpected error. Please try again later.";
       } else if (error instanceof Error) {
-        if (error.message.includes('429') || error.message.includes('quota')) {
-          errorMessage = "The analysis service is currently at capacity. Please try again in a few minutes.";
+        if (error.message.includes('insufficient_quota') || error.message.includes('exceeded your OpenAI API quota')) {
+          errorMessage = "Our analysis service has reached its quota limit. Please try again later.";
+        } else if (error.message.includes('429') || error.message.includes('rate limiting')) {
+          errorMessage = "The analysis service is temporarily unavailable. Please try again in a few minutes.";
         } else if (error.message.includes('Content cannot be empty')) {
           errorMessage = "Please enter some text to analyze.";
         } else if (error.message.includes('invalid_union') || error.message.includes('Invalid input')) {
