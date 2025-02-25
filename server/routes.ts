@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { insertAnalysisSchema, type AnalysisMode } from "@shared/schema";
+import { insertAnalysisSchema, type AnalysisMode, analysisResultSchema } from "@shared/schema";
 import { z } from "zod";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -73,10 +73,13 @@ export async function registerRoutes(app: Express) {
 
       const analysisResult = JSON.parse(response.choices[0].message.content);
 
+      // Validate the analysis result
+      const validatedResult = await analysisResultSchema.parseAsync(analysisResult);
+
       const result = await storage.createAnalysis({
         content,
         mode,
-        analysis: analysisResult
+        analysis: validatedResult
       });
 
       res.json(result);

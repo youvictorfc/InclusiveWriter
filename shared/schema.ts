@@ -28,3 +28,17 @@ export type AnalysisResult = {
     severity: 'low' | 'medium' | 'high';
   }>;
 };
+
+// Add validation schema for the analysis result
+export const analysisResultSchema = z.object({
+  issues: z.array(
+    z.object({
+      text: z.string(),
+      startIndex: z.number(),
+      endIndex: z.number(),
+      suggestion: z.string(),
+      reason: z.string(),
+      severity: z.enum(['low', 'medium', 'high']),
+    })
+  ),
+});
