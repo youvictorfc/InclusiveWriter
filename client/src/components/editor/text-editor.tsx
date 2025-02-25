@@ -85,13 +85,22 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       console.error('Analysis failed:', error);
 
       let errorMessage = "There was an error analyzing your text. Please try again.";
-      if (error instanceof Error) {
-        if (error.message.includes('rate limiting') || error.message.includes('unavailable')) {
-          errorMessage = "The OpenAI API is currently unavailable due to rate limiting. Please try again in a few minutes or contact support if the issue persists.";
+
+      // Handle empty error objects
+      if (!error || (error instanceof Error && !error.message)) {
+        errorMessage = "The analysis service encountered an unexpected error. Please try again later.";
+      } else if (error instanceof Error) {
+        if (error.message.includes('429') || error.message.includes('quota')) {
+          errorMessage = "The analysis service is currently at capacity. Please try again in a few minutes.";
         } else if (error.message.includes('Content cannot be empty')) {
           errorMessage = "Please enter some text to analyze.";
+        } else if (error.message.includes('invalid_union') || error.message.includes('Invalid input')) {
+          errorMessage = "The analysis service returned an invalid response. Please try again.";
         }
       }
+
+      // Clear any partial analysis
+      onAnalysis(null);
 
       toast({
         variant: "destructive",

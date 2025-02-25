@@ -137,6 +137,18 @@ export async function registerRoutes(app: Express) {
             error: "There was an issue with the analysis service. Please try again later."
           });
         }
+        // Handle parsing errors
+        if (error instanceof SyntaxError) {
+          return res.status(500).json({
+            error: "Failed to parse the analysis results. Please try again."
+          });
+        }
+        // Handle validation errors
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({
+            error: "Invalid analysis format. Please try again."
+          });
+        }
         throw error; // Re-throw other errors to be caught by outer catch
       }
     } catch (error) {
