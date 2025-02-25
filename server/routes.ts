@@ -12,6 +12,25 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Test the OpenAI API key on startup
+(async () => {
+  try {
+    await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "system", content: "Test message" }],
+    });
+    console.log('OpenAI API key validated successfully');
+  } catch (error) {
+    if (error instanceof OpenAI.APIError) {
+      console.error('OpenAI API Key validation failed:', {
+        status: error.status,
+        type: error.type,
+        code: error.code
+      });
+    }
+  }
+})();
+
 const getGuidelinesForMode = (mode: AnalysisMode): string => {
   switch (mode) {
     case 'language':
