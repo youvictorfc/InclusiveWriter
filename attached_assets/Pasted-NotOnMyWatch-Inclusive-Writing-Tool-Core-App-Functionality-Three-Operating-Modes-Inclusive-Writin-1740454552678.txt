@@ -1,0 +1,85 @@
+NotOnMyWatch - Inclusive Writing Tool
+Core App Functionality
+Three Operating Modes
+
+Inclusive Writing - For general content creation
+Inclusive Policy - Specialized for policy documentation
+Inclusive Recruitment - Focused on job descriptions and hiring materials
+
+User Flow
+
+User selects operating mode
+User pastes document text (up to 10,000 words based on your UI)
+App analyzes content for non-inclusive language
+App highlights problematic sections
+App provides inclusive alternatives
+User can accept changes or modify as needed
+
+Technical Requirements
+Analysis Engine
+
+Natural Language Processing to identify non-inclusive terminology
+Context-aware analysis (understands intention and surrounding content)
+Pattern recognition for subtle exclusionary language
+
+Database Components
+
+Comprehensive inclusive language guidelines for each mode
+Alternative phrasing suggestions
+Educational resources explaining why specific terms are problematic
+
+UI Elements
+
+Mode selection toggle/dropdown (3 options)
+Text input area (similar to what's shown in your screenshot)
+Side panel for displaying issues
+Inline highlighting of problematic text
+Suggestion panel with alternative phrasings
+Save/export functionality for revised text
+
+Mode-Specific Guidelines
+1. Inclusive Writing Mode
+
+Gender-neutral language
+Cultural sensitivity
+Disability-inclusive terminology
+Age-inclusive language
+Socioeconomic inclusion
+Avoidance of idioms that exclude certain groups
+
+2. Inclusive Policy Mode
+All of the above, plus:
+
+Legal compliance checks
+Regulatory framework alignment
+Universal accessibility considerations
+Organizational equity principles
+Accommodations language
+
+3. Inclusive Recruitment Mode
+All of the general guidelines, plus:
+
+Job requirement neutrality
+Skills-based language over credential-based
+Removal of gendered job descriptors
+Accessibility in application process language
+Diverse candidate pool encouragement
+Inclusive workplace culture representation
+
+Additional Features
+User Experience
+
+Color-coded highlighting (severity of issues)
+Explanation tooltips for suggestions
+Learning resources for users
+Progress tracker showing improvement
+Export options (Word, PDF, plain text)
+
+Advanced Options
+
+Customizable sensitivity settings
+Industry-specific terminology adjustments
+Organization-specific guideline integration
+Reporting features to track improvements over time
+
+Would you like me to expand on any specific aspect of this app design? I can provide more detailed guidelines for any of the three modes or suggest how the feedback system could work.
