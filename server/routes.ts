@@ -1,35 +1,11 @@
-import { type Express } from "express";
+import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertAnalysisSchema, type AnalysisMode, analysisResultSchema } from "@shared/schema";
 import { z } from "zod";
 
-// Validate OpenAI API key exists
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("Missing OPENAI_API_KEY environment variable");
-}
-
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// Test the OpenAI API key on startup
-(async () => {
-  try {
-    await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "system", content: "Test message" }],
-    });
-    console.log('OpenAI API key validated successfully');
-  } catch (error) {
-    if (error instanceof OpenAI.APIError) {
-      console.error('OpenAI API Key validation failed:', {
-        status: error.status,
-        type: error.type,
-        code: error.code
-      });
-    }
-  }
-})();
 
 const getGuidelinesForMode = (mode: AnalysisMode): string => {
   switch (mode) {
@@ -70,6 +46,7 @@ const getGuidelinesForMode = (mode: AnalysisMode): string => {
   }
 };
 
+// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 export async function registerRoutes(app: Express) {
   app.post("/api/analyze", async (req, res) => {
     try {
@@ -84,122 +61,72 @@ export async function registerRoutes(app: Express) {
         throw new Error('Valid mode is required');
       }
 
-      try {
-        const response = await openai.chat.completions.create({
-          model: "gpt-4", // Using gpt-4 since gpt-4o was causing issues
-          messages: [
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert at identifying non-inclusive language. ${getGuidelinesForMode(mode as AnalysisMode)} 
+            Analyze the text and identify specific instances of non-inclusive language.
+            For each issue found, provide:
+            1. The exact problematic text
+            2. A suggested alternative
+            3. A clear explanation of why this needs to be changed
+            4. The severity level (low, medium, or high)
+
+            Return the results in this exact JSON format:
             {
-              role: "system",
-              content: `You are an expert at identifying non-inclusive language. ${getGuidelinesForMode(mode as AnalysisMode)} 
-              Analyze the text and identify specific instances of non-inclusive language.
-              For each issue found, provide:
-              1. The exact problematic text
-              2. A suggested alternative
-              3. A clear explanation of why this needs to be changed
-              4. The severity level (low, medium, or high)
-
-              Return the results in this exact JSON format:
-              {
-                "issues": [
-                  {
-                    "text": "exact text found",
-                    "startIndex": 0,
-                    "endIndex": 0,
-                    "suggestion": "suggested replacement",
-                    "reason": "explanation of why this needs to be changed",
-                    "severity": "low" | "medium" | "high"
-                  }
-                ]
-              }`
-            },
-            {
-              role: "user",
-              content
-            }
-          ],
-          response_format: { type: "json_object" }
-        });
-
-        if (!response.choices[0].message.content) {
-          throw new Error("No response from OpenAI");
-        }
-
-        let analysisResult;
-        try {
-          analysisResult = JSON.parse(response.choices[0].message.content);
-        } catch (parseError) {
-          console.error('Failed to parse OpenAI response:', parseError);
-          throw new Error("Failed to parse analysis response");
-        }
-
-        if (!analysisResult || !Array.isArray(analysisResult.issues)) {
-          console.error('Invalid analysis result structure:', analysisResult);
-          throw new Error("Invalid response format from OpenAI");
-        }
-
-        // Create the analysis result with correct structure
-        const validatedResult = {
-          issues: analysisResult.issues.map((issue: any) => ({
-            text: issue.text || '',
-            startIndex: 0, // We'll calculate these on the frontend
-            endIndex: 0,   // since they depend on the actual text placement
-            suggestion: issue.suggestion || '',
-            reason: issue.reason || '',
-            severity: issue.severity || 'low',
-          }))
-        };
-
-        // Validate the analysis result
-        try {
-          const validatedAnalysis = await analysisResultSchema.parseAsync(validatedResult);
-
-          const result = await storage.createAnalysis({
-            content,
-            mode,
-            analysis: validatedAnalysis
-          });
-
-          return res.json(result);
-        } catch (validationError) {
-          console.error('Validation error:', validationError);
-          throw new Error("Invalid analysis format");
-        }
-      } catch (error) {
-        if (error instanceof OpenAI.APIError) {
-          console.error('OpenAI API Error:', error);
-          if (error.status === 429) {
-            return res.status(429).json({
-              error: "The OpenAI API is currently unavailable due to rate limiting. Please check your plan and billing details."
-            });
+              "issues": [
+                {
+                  "text": "exact text found",
+                  "startIndex": 0,
+                  "endIndex": 0,
+                  "suggestion": "suggested replacement",
+                  "reason": "explanation of why this needs to be changed",
+                  "severity": "low" | "medium" | "high"
+                }
+              ]
+            }`
+          },
+          {
+            role: "user",
+            content
           }
-          if (error.type === 'insufficient_quota') {
-            return res.status(429).json({
-              error: "You have exceeded your OpenAI API quota. Please check your plan and billing details."
-            });
-          }
-          return res.status(error.status || 500).json({
-            error: "There was an issue with the analysis service. Please try again later."
-          });
-        }
-        // Handle parsing errors
-        if (error instanceof SyntaxError) {
-          return res.status(500).json({
-            error: "Failed to parse the analysis results. Please try again."
-          });
-        }
-        // Handle validation errors
-        if (error instanceof z.ZodError) {
-          return res.status(400).json({
-            error: "Invalid analysis format. Please try again."
-          });
-        }
-        throw error; // Re-throw other errors to be caught by outer catch
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      if (!response.choices[0].message.content) {
+        throw new Error("No response from OpenAI");
       }
+
+      const analysisResult = JSON.parse(response.choices[0].message.content);
+
+      // Create the analysis result with correct structure
+      const validatedResult = {
+        issues: analysisResult.issues.map((issue: any) => ({
+          text: issue.text,
+          startIndex: 0, // We'll calculate these on the frontend
+          endIndex: 0,   // since they depend on the actual text placement
+          suggestion: issue.suggestion,
+          reason: issue.reason,
+          severity: issue.severity,
+        }))
+      };
+
+      // Validate the analysis result
+      const validatedAnalysis = await analysisResultSchema.parseAsync(validatedResult);
+
+      const result = await storage.createAnalysis({
+        content,
+        mode,
+        analysis: validatedAnalysis
+      });
+
+      res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);
-      res.status(400).json({
-        error: error instanceof Error ? error.message : 'Analysis failed. Please try again later.'
-      });
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Analysis failed' });
     }
   });
 

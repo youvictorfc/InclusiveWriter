@@ -10,7 +10,7 @@ import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface TextEditorProps {
-  onAnalysis: (result: AnalysisResult | null) => void;
+  onAnalysis: (result: AnalysisResult) => void;
   mode: AnalysisMode;
 }
 
@@ -34,21 +34,6 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
     onUpdate: ({ editor }) => {
       const words = editor.getText().trim().split(/\s+/).length;
       setWordCount(editor.getText().trim() ? words : 0);
-      // Save content to localStorage whenever it changes
-      localStorage.setItem('editorContent', editor.getHTML());
-    },
-    // Preserve content between component re-renders
-    autofocus: 'end',
-    content: '',
-    editable: true,
-    onCreate: ({ editor }) => {
-      // Restore any existing highlights when editor is created
-      if (editor.isEmpty) {
-        const savedContent = localStorage.getItem('editorContent');
-        if (savedContent) {
-          editor.commands.setContent(savedContent);
-        }
-      }
     },
   });
 
@@ -58,20 +43,7 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
     setAnalyzing(true);
     try {
       const content = editor.getText();
-
-      if (!content.trim()) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Please enter some text to analyze.",
-        });
-        return;
-      }
-
       const result = await analyzeText(content, mode);
-
-      // Save the current state before applying highlights
-      localStorage.setItem('editorContent', editor.getHTML());
 
       // Clear existing highlights
       editor.commands.unsetHighlight();
@@ -89,9 +61,6 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
         }
       });
 
-      // Save the highlighted state
-      localStorage.setItem('editorContent', editor.getHTML());
-
       onAnalysis(result);
 
       toast({
@@ -100,31 +69,10 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       });
     } catch (error) {
       console.error('Analysis failed:', error);
-
-      let errorMessage = "There was an error analyzing your text. Please try again.";
-
-      // Handle empty error objects
-      if (!error || (error instanceof Error && !error.message)) {
-        errorMessage = "The analysis service encountered an unexpected error. Please try again later.";
-      } else if (error instanceof Error) {
-        if (error.message.includes('insufficient_quota') || error.message.includes('exceeded your OpenAI API quota')) {
-          errorMessage = "Our analysis service has reached its quota limit. Please try again later.";
-        } else if (error.message.includes('429') || error.message.includes('rate limiting')) {
-          errorMessage = "The analysis service is temporarily unavailable. Please try again in a few minutes.";
-        } else if (error.message.includes('Content cannot be empty')) {
-          errorMessage = "Please enter some text to analyze.";
-        } else if (error.message.includes('invalid_union') || error.message.includes('Invalid input')) {
-          errorMessage = "The analysis service returned an invalid response. Please try again.";
-        }
-      }
-
-      // Clear any partial analysis
-      onAnalysis(null);
-
       toast({
         variant: "destructive",
         title: "Analysis Failed",
-        description: errorMessage,
+        description: "There was an error analyzing your text. Please try again.",
       });
     } finally {
       setAnalyzing(false);
@@ -136,20 +84,6 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       <div className="rounded-lg border bg-card">
         <div className="border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground"
-              onClick={() => {
-                if (editor) {
-                  editor.commands.clearContent();
-                  localStorage.removeItem('editorContent');
-                  onAnalysis(null);
-                }
-              }}
-            >
-              Clear
-            </Button>
             <Button variant="ghost" size="sm" className="text-muted-foreground">
               <Save className="h-4 w-4 mr-2" />
               Save
@@ -160,15 +94,15 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
           </div>
         </div>
         <div className="p-4">
-          <EditorContent
-            editor={editor}
+          <EditorContent 
+            editor={editor} 
             className="min-h-[400px] focus-within:outline-none"
             placeholder="Enter your text here to analyze (10,000 words max)..."
           />
         </div>
       </div>
       <div className="flex justify-end">
-        <Button
+        <Button 
           onClick={analyze}
           disabled={analyzing || !editor?.getText().trim() || wordCount > 10000}
           className="w-[140px]"
