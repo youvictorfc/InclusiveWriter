@@ -27,6 +27,12 @@ export async function analyzeText(content: string, mode: AnalysisMode): Promise<
 
     return data.analysis;
   } catch (error) {
+    // Convert the error to a more user-friendly message
+    if (error instanceof Error) {
+      if (error.message.includes('429') || error.message.includes('quota')) {
+        throw new Error("The analysis service is currently at capacity. Please try again in a few minutes.");
+      }
+    }
     console.error('Analysis error:', error);
     throw error;
   }

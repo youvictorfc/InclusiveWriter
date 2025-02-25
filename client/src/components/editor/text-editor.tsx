@@ -10,7 +10,7 @@ import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface TextEditorProps {
-  onAnalysis: (result: AnalysisResult) => void;
+  onAnalysis: (result: AnalysisResult | null) => void;
   mode: AnalysisMode;
 }
 
@@ -86,7 +86,7 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
 
       let errorMessage = "There was an error analyzing your text. Please try again.";
       if (error instanceof Error) {
-        if (error.message.includes('429')) {
+        if (error.message.includes('429') || error.message.includes('capacity')) {
           errorMessage = "The analysis service is currently at capacity. Please try again in a few minutes.";
         } else if (error.message.includes('Content cannot be empty')) {
           errorMessage = "Please enter some text to analyze.";
