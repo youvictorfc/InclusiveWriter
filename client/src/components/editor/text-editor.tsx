@@ -34,11 +34,22 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
     onUpdate: ({ editor }) => {
       const words = editor.getText().trim().split(/\s+/).length;
       setWordCount(editor.getText().trim() ? words : 0);
+      // Save content to localStorage whenever it changes
+      localStorage.setItem('editorContent', editor.getHTML());
     },
     // Preserve content between component re-renders
-    autofocus: false,
+    autofocus: 'end',
     content: '',
     editable: true,
+    onCreate: ({ editor }) => {
+      // Restore any existing highlights when editor is created
+      if (editor.isEmpty) {
+        const savedContent = localStorage.getItem('editorContent');
+        if (savedContent) {
+          editor.commands.setContent(savedContent);
+        }
+      }
+    },
   });
 
   const analyze = async () => {
@@ -59,6 +70,9 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
 
       const result = await analyzeText(content, mode);
 
+      // Save the current state before applying highlights
+      localStorage.setItem('editorContent', editor.getHTML());
+
       // Clear existing highlights
       editor.commands.unsetHighlight();
 
@@ -74,6 +88,9 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
             .run();
         }
       });
+
+      // Save the highlighted state
+      localStorage.setItem('editorContent', editor.getHTML());
 
       onAnalysis(result);
 
@@ -126,6 +143,7 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
               onClick={() => {
                 if (editor) {
                   editor.commands.clearContent();
+                  localStorage.removeItem('editorContent');
                   onAnalysis(null);
                 }
               }}
