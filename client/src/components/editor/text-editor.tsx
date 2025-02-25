@@ -35,6 +35,10 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       const words = editor.getText().trim().split(/\s+/).length;
       setWordCount(editor.getText().trim() ? words : 0);
     },
+    // Preserve content between component re-renders
+    autofocus: false,
+    content: '',
+    editable: true,
   });
 
   const analyze = async () => {
@@ -84,6 +88,19 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       <div className="rounded-lg border bg-card">
         <div className="border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground"
+              onClick={() => {
+                if (editor) {
+                  editor.commands.clearContent();
+                  onAnalysis(null);
+                }
+              }}
+            >
+              Clear
+            </Button>
             <Button variant="ghost" size="sm" className="text-muted-foreground">
               <Save className="h-4 w-4 mr-2" />
               Save
