@@ -48,13 +48,15 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       // Clear existing highlights
       editor.commands.unsetHighlight();
 
-      // Apply new highlights
-      const editorText = editor.getText();
+      // Apply new highlights based on found issues
       result.issues.forEach(issue => {
-        const start = editorText.indexOf(issue.text);
-        if (start !== -1) {
+        const text = editor.getText();
+        const index = text.indexOf(issue.text);
+        if (index !== -1) {
           editor.chain()
-            .setHighlight({ from: start, to: start + issue.text.length })
+            .focus()
+            .setTextSelection({ from: index, to: index + issue.text.length })
+            .setHighlight({ color: issue.severity === 'high' ? '#fecaca' : issue.severity === 'medium' ? '#fef08a' : '#bfdbfe' })
             .run();
         }
       });

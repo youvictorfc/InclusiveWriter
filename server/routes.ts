@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express) {
       res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);
-      res.status(400).json({ error: (error as Error).message });
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Analysis failed' });
     }
   });
 
