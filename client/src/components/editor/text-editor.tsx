@@ -67,13 +67,23 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
         title: "Analysis Complete",
         description: `Found ${result.issues.length} issues to review.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis failed:', error);
-      toast({
-        variant: "destructive",
-        title: "Analysis Failed",
-        description: "There was an error analyzing your text. Please try again.",
-      });
+
+      // Handle rate limit error specifically
+      if (error.message?.includes('429')) {
+        toast({
+          variant: "destructive",
+          title: "API Rate Limit Reached",
+          description: "Please wait a few minutes before trying again.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Analysis Failed",
+          description: error.message || "There was an error analyzing your text. Please try again.",
+        });
+      }
     } finally {
       setAnalyzing(false);
     }

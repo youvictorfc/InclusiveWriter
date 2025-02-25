@@ -126,7 +126,22 @@ export async function registerRoutes(app: Express) {
       res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);
-      res.status(400).json({ error: error instanceof Error ? error.message : 'Analysis failed' });
+
+      // Handle specific OpenAI errors
+      if (error instanceof OpenAI.APIError) {
+        if (error.status === 429) {
+          return res.status(429).json({
+            error: "OpenAI API rate limit reached. Please try again in a few minutes."
+          });
+        }
+        return res.status(error.status || 500).json({
+          error: "OpenAI API error: " + error.message
+        });
+      }
+
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : 'Analysis failed' 
+      });
     }
   });
 
