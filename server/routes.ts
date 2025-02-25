@@ -5,6 +5,11 @@ import OpenAI from "openai";
 import { insertAnalysisSchema, type AnalysisMode, analysisResultSchema } from "@shared/schema";
 import { z } from "zod";
 
+// Validate OpenAI API key exists
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("Missing OPENAI_API_KEY environment variable");
+}
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const getGuidelinesForMode = (mode: AnalysisMode): string => {
@@ -141,7 +146,6 @@ export async function registerRoutes(app: Express) {
           throw new Error("Invalid analysis format");
         }
       } catch (error) {
-        // Handle OpenAI specific errors
         if (error instanceof OpenAI.APIError) {
           console.error('OpenAI API Error:', error);
           if (error.status === 429) {
