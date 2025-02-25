@@ -4,8 +4,6 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertAnalysisSchema, type AnalysisMode } from "@shared/schema";
 import { z } from "zod";
-import fs from 'fs';
-import path from 'path';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -69,16 +67,21 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const analysis = JSON.parse(response.choices[0].message.content);
+      if (!response.choices[0].message.content) {
+        throw new Error("No response from OpenAI");
+      }
+
+      const analysisResult = JSON.parse(response.choices[0].message.content);
 
       const result = await storage.createAnalysis({
         content,
         mode,
-        analysis
+        analysis: analysisResult
       });
 
       res.json(result);
     } catch (error) {
+      console.error('Analysis error:', error);
       res.status(400).json({ error: (error as Error).message });
     }
   });
