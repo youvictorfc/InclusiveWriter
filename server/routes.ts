@@ -153,8 +153,8 @@ export async function registerRoutes(app: Express) {
       }
     } catch (error) {
       console.error('Analysis error:', error);
-      res.status(400).json({ 
-        error: error instanceof Error ? error.message : 'Analysis failed. Please try again later.' 
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Analysis failed. Please try again later.'
       });
     }
   });
