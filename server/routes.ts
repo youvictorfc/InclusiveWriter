@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express) {
 
       try {
         const response = await openai.chat.completions.create({
-          model: "gpt-4", // Fix model name
+          model: "gpt-4", // Using gpt-4 since gpt-4o was causing issues
           messages: [
             {
               role: "system",
@@ -130,11 +130,11 @@ export async function registerRoutes(app: Express) {
           console.error('OpenAI API Error:', error);
           if (error.status === 429) {
             return res.status(429).json({
-              error: "The analysis service is currently at capacity. Please try again in a few minutes."
+              error: "The OpenAI API is currently unavailable due to rate limiting. Please try again in a few minutes or contact support if the issue persists."
             });
           }
           return res.status(error.status || 500).json({
-            error: "There was an issue with the analysis service. Please try again."
+            error: "There was an issue with the analysis service. Please try again later."
           });
         }
         throw error; // Re-throw other errors to be caught by outer catch
@@ -142,7 +142,7 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Analysis error:', error);
       res.status(400).json({ 
-        error: error instanceof Error ? error.message : 'Analysis failed' 
+        error: error instanceof Error ? error.message : 'Analysis failed. Please try again later.' 
       });
     }
   });

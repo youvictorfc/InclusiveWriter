@@ -86,8 +86,8 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
 
       let errorMessage = "There was an error analyzing your text. Please try again.";
       if (error instanceof Error) {
-        if (error.message.includes('429') || error.message.includes('capacity')) {
-          errorMessage = "The analysis service is currently at capacity. Please try again in a few minutes.";
+        if (error.message.includes('rate limiting') || error.message.includes('unavailable')) {
+          errorMessage = "The OpenAI API is currently unavailable due to rate limiting. Please try again in a few minutes or contact support if the issue persists.";
         } else if (error.message.includes('Content cannot be empty')) {
           errorMessage = "Please enter some text to analyze.";
         }
