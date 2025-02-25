@@ -61,10 +61,9 @@ export async function registerRoutes(app: Express) {
             Analyze the text and identify specific instances of non-inclusive language.
             For each issue found, provide:
             1. The exact problematic text
-            2. The start and end position of the text
-            3. A suggested alternative
-            4. A clear explanation of why it should be changed
-            5. The severity level (low, medium, or high)
+            2. A suggested alternative
+            3. A clear explanation of why it should be changed
+            4. The severity level (low, medium, or high)
 
             Return the results in this exact JSON format:
             {
@@ -72,7 +71,7 @@ export async function registerRoutes(app: Express) {
                 {
                   "text": "exact text found",
                   "startIndex": 0,
-                  "endIndex": 10,
+                  "endIndex": 0,
                   "suggestion": "suggested replacement",
                   "reason": "explanation of why this needs to be changed",
                   "severity": "low" | "medium" | "high"
@@ -94,13 +93,25 @@ export async function registerRoutes(app: Express) {
 
       const analysisResult = JSON.parse(response.choices[0].message.content);
 
+      // Create the analysis result with correct structure
+      const validatedResult = {
+        issues: analysisResult.issues.map((issue: any) => ({
+          text: issue.text,
+          startIndex: 0, // We'll calculate these on the frontend
+          endIndex: 0,   // since they depend on the actual text placement
+          suggestion: issue.suggestion,
+          reason: issue.reason,
+          severity: issue.severity,
+        }))
+      };
+
       // Validate the analysis result
-      const validatedResult = await analysisResultSchema.parseAsync(analysisResult);
+      const validatedAnalysis = await analysisResultSchema.parseAsync(validatedResult);
 
       const result = await storage.createAnalysis({
         content,
         mode,
-        analysis: validatedResult
+        analysis: validatedAnalysis
       });
 
       res.json(result);

@@ -49,14 +49,13 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       editor.commands.unsetHighlight();
 
       // Apply new highlights
+      const editorText = editor.getText();
       result.issues.forEach(issue => {
-        const text = editor.getText();
-        const start = text.indexOf(issue.text);
+        const start = editorText.indexOf(issue.text);
         if (start !== -1) {
-          editor.commands.setHighlight({
-            from: start,
-            to: start + issue.text.length,
-          });
+          editor.chain()
+            .setHighlight({ from: start, to: start + issue.text.length })
+            .run();
         }
       });
 
