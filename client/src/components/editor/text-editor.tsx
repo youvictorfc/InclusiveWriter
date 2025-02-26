@@ -141,7 +141,7 @@ export function TextEditor({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border bg-card w-full">
         <div className="border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Button variant="ghost" size="sm" className="text-muted-foreground">
@@ -156,7 +156,7 @@ export function TextEditor({
         <div className="p-4">
           <EditorContent 
             editor={editor} 
-            className="min-h-[400px] focus-within:outline-none"
+            className="min-h-[400px] focus-within:outline-none w-full"
           />
         </div>
       </div>
