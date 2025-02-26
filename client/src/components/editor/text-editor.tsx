@@ -4,7 +4,7 @@ import Highlight from '@tiptap/extension-highlight';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { analyzeText } from '@/lib/openai';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -12,9 +12,11 @@ import { useToast } from '@/hooks/use-toast';
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
   mode: AnalysisMode;
+  content: string;
+  onContentChange: (content: string) => void;
 }
 
-export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
+export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextEditorProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
@@ -26,22 +28,32 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
         multicolor: true,
       }),
     ],
+    content: content,
     editorProps: {
       attributes: {
         class: 'min-h-[400px] prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none',
       },
     },
     onUpdate: ({ editor }) => {
-      const words = editor.getText().trim().split(/\s+/).length;
-      setWordCount(editor.getText().trim() ? words : 0);
+      const text = editor.getText();
+      onContentChange(text);
+      const words = text.trim().split(/\s+/).length;
+      setWordCount(text.trim() ? words : 0);
     },
   });
+
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && editor.getText() !== content) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
   const analyze = async () => {
     if (!editor) return;
 
-    const content = editor.getText().trim();
-    if (!content) {
+    const currentContent = editor.getText().trim();
+    if (!currentContent) {
       toast({
         variant: "destructive",
         title: "Empty Content",
@@ -61,7 +73,7 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
 
     setAnalyzing(true);
     try {
-      const result = await analyzeText(content, mode);
+      const result = await analyzeText(currentContent, mode);
 
       // Clear existing highlights
       editor.commands.unsetHighlight();

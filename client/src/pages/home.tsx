@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [mode, setMode] = useState<AnalysisMode>('language');
+  const [content, setContent] = useState<string>('');
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,7 +40,12 @@ export default function Home() {
                 <TabsTrigger value="analysis">Analysis</TabsTrigger>
               </TabsList>
               <TabsContent value="editor" className="space-y-4">
-                <TextEditor onAnalysis={setAnalysis} mode={mode} />
+                <TextEditor 
+                  onAnalysis={setAnalysis} 
+                  mode={mode}
+                  content={content}
+                  onContentChange={setContent}
+                />
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">
                 <SuggestionsPanel analysis={analysis} />
