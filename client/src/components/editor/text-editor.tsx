@@ -16,6 +16,7 @@ interface TextEditorProps {
   htmlContent: string;
   onContentChange: (content: string) => void;
   onHtmlContentChange: (html: string) => void;
+  onShowAnalysis: () => void;
 }
 
 export function TextEditor({ 
@@ -24,7 +25,8 @@ export function TextEditor({
   content, 
   htmlContent,
   onContentChange, 
-  onHtmlContentChange 
+  onHtmlContentChange,
+  onShowAnalysis
 }: TextEditorProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [wordCount, setWordCount] = useState(0);
@@ -117,7 +119,11 @@ export function TextEditor({
 
       toast({
         title: "Analysis Complete",
-        description: `Found ${result.issues.length} issues to review.`,
+        description: (
+          <div onClick={onShowAnalysis} className="cursor-pointer hover:underline">
+            Found {result.issues.length} issues to review. Click to view analysis.
+          </div>
+        ),
       });
     } catch (error: any) {
       console.error('Analysis failed:', error);

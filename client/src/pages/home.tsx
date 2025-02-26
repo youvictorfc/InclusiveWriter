@@ -10,6 +10,7 @@ export default function Home() {
   const [mode, setMode] = useState<AnalysisMode>('language');
   const [content, setContent] = useState<string>('');
   const [htmlContent, setHtmlContent] = useState<string>('');
+  const [activeTab, setActiveTab] = useState('editor');
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,7 +36,7 @@ export default function Home() {
       <main className="container mx-auto px-4 py-6">
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
-            <Tabs defaultValue="editor" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList>
                 <TabsTrigger value="editor">Editor</TabsTrigger>
                 <TabsTrigger value="analysis">Analysis</TabsTrigger>
@@ -48,6 +49,7 @@ export default function Home() {
                   htmlContent={htmlContent}
                   onContentChange={setContent}
                   onHtmlContentChange={setHtmlContent}
+                  onShowAnalysis={() => setActiveTab('analysis')}
                 />
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">
