@@ -45,17 +45,19 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       // Only update content if it's actually different to avoid unnecessary rerenders
-      const currentContent = editor.getText();
-      if (content !== currentContent) {
-        // Store the current selection
+      const currentContent = editor.getHTML();
+      if (content !== editor.getText()) {
+        // Store the current selection and cursor position
         const { from, to } = editor.state.selection;
+        const scrollPos = window.scrollY;
 
-        // Update content
-        editor.commands.setContent(content || '');
+        // Update content while preserving HTML formatting
+        editor.commands.setContent(currentContent);
 
-        // Restore selection if it was within bounds
+        // Restore selection and scroll position
         if (from <= (content?.length || 0) && to <= (content?.length || 0)) {
           editor.commands.setTextSelection({ from, to });
+          window.scrollTo(0, scrollPos);
         }
       }
     }
