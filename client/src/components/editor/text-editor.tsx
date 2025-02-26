@@ -42,7 +42,7 @@ export function TextEditor({
     content: htmlContent || content || '',
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed',
+        class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none',
       },
     },
     onUpdate: ({ editor }) => {
@@ -156,7 +156,7 @@ export function TextEditor({
         <div className="p-4">
           <EditorContent 
             editor={editor} 
-            className="min-h-[400px] focus-within:outline-none w-full"
+            className="focus-within:outline-none w-full"
           />
         </div>
       </div>
