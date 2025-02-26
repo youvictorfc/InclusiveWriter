@@ -14,21 +14,34 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-white">
+      <header className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold">NOMW</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
+              NOMW
+            </h1>
+            <span className="text-sm text-muted-foreground">Inclusive Language Assistant</span>
+          </div>
           <div className="flex items-center gap-4">
             <Select value={mode} onValueChange={(value) => setMode(value as AnalysisMode)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-white/50 backdrop-blur-sm border-primary/20">
                 <SelectValue placeholder="Select mode" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="language">Inclusive Language</SelectItem>
-                <SelectItem value="policy">Inclusive Policy</SelectItem>
-                <SelectItem value="recruitment">Inclusive Recruitment</SelectItem>
+                <SelectItem value="language" className="focus:bg-primary/10">
+                  Inclusive Language
+                </SelectItem>
+                <SelectItem value="policy" className="focus:bg-primary/10">
+                  Inclusive Policy
+                </SelectItem>
+                <SelectItem value="recruitment" className="focus:bg-primary/10">
+                  Inclusive Recruitment
+                </SelectItem>
               </SelectContent>
             </Select>
-            <button className="text-sm text-muted-foreground">Logout</button>
+            <button className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Logout
+            </button>
           </div>
         </div>
       </header>
@@ -37,9 +50,13 @@ export default function Home() {
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList>
-                <TabsTrigger value="editor">Editor</TabsTrigger>
-                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 max-w-[400px] bg-muted/50">
+                <TabsTrigger value="editor" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  Editor
+                </TabsTrigger>
+                <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  Analysis
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="editor" className="space-y-4">
                 <TextEditor 
