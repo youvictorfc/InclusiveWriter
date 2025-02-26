@@ -42,7 +42,8 @@ export function TextEditor({
     content: htmlContent || content || '',
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none',
+        class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[200px] placeholder:text-muted-foreground',
+        placeholder: 'Enter your text here to analyze (10,000 words max)...'
       },
     },
     onUpdate: ({ editor }) => {
