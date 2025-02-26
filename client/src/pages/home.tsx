@@ -24,7 +24,7 @@ export default function Home() {
               <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-violet-500">
                 Inclusive Language
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-violet-500">
                 Assistant
               </span>
             </div>
