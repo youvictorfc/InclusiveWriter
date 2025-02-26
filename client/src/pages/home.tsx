@@ -4,11 +4,8 @@ import { SuggestionsPanel } from '@/components/editor/suggestions-panel';
 import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from '@/contexts/auth-context';
-import { Button } from '@/components/ui/button';
 
 export default function Home() {
-  const { user, signOut } = useAuth();
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [mode, setMode] = useState<AnalysisMode>('language');
   const [content, setContent] = useState<string>('');
@@ -31,12 +28,7 @@ export default function Home() {
                 <SelectItem value="recruitment">Inclusive Recruitment</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{user?.email}</span>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                Logout
-              </Button>
-            </div>
+            <button className="text-sm text-muted-foreground">Logout</button>
           </div>
         </div>
       </header>
