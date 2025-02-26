@@ -16,7 +16,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-white">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold">EquiWrite</h1>
+          <h1 className="text-xl font-semibold">NOMW</h1>
           <div className="flex items-center gap-4">
             <Select value={mode} onValueChange={(value) => setMode(value as AnalysisMode)}>
               <SelectTrigger className="w-[180px]">
