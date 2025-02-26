@@ -35,17 +35,41 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
+      // Select the appropriate system prompt based on mode
+      let systemPrompt = '';
+      switch (mode) {
+        case 'language':
+          systemPrompt = `You are an expert at identifying non-inclusive language. Analyze the text and identify specific instances of non-inclusive language.
+            For each issue found, provide:
+            1. The exact problematic text
+            2. A suggested alternative
+            3. A clear explanation of why this needs to be changed
+            4. The severity level (low, medium, or high)`;
+          break;
+        case 'policy':
+          systemPrompt = `You are an expert at analyzing organizational policies for inclusivity and fairness. Review the policy text and identify areas that could be improved.
+            For each issue found, provide:
+            1. The exact policy text that needs attention
+            2. A suggested revision
+            3. An explanation of why this change would make the policy more inclusive
+            4. The severity level (low, medium, or high) based on potential impact`;
+          break;
+        case 'recruitment':
+          systemPrompt = `You are an expert at analyzing recruitment and job-related content for bias and inclusivity. Review the text and identify potential barriers or biases.
+            For each issue found, provide:
+            1. The exact text that may limit candidate diversity
+            2. A suggested alternative
+            3. An explanation of how this change promotes inclusive recruitment
+            4. The severity level (low, medium, or high) based on potential impact on candidate pool`;
+          break;
+      }
+
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
             role: "system",
-            content: `You are an expert at identifying non-inclusive language. Analyze the text and identify specific instances of non-inclusive language.
-            For each issue found, provide:
-            1. The exact problematic text
-            2. A suggested alternative
-            3. A clear explanation of why this needs to be changed
-            4. The severity level (low, medium, or high)
+            content: `${systemPrompt}
 
             Return the results in this exact JSON format:
             {
