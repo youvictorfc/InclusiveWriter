@@ -13,10 +13,19 @@ interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
   mode: AnalysisMode;
   content: string;
+  htmlContent: string;
   onContentChange: (content: string) => void;
+  onHtmlContentChange: (html: string) => void;
 }
 
-export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextEditorProps) {
+export function TextEditor({ 
+  onAnalysis, 
+  mode, 
+  content, 
+  htmlContent,
+  onContentChange, 
+  onHtmlContentChange 
+}: TextEditorProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
@@ -28,7 +37,7 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
         multicolor: true,
       }),
     ],
-    content: content || '',
+    content: htmlContent || content || '',
     editorProps: {
       attributes: {
         class: 'min-h-[400px] prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none',
@@ -36,7 +45,9 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
     },
     onUpdate: ({ editor }) => {
       const text = editor.getText();
+      const html = editor.getHTML();
       onContentChange(text);
+      onHtmlContentChange(html);
       const words = text.trim().split(/\s+/).length;
       setWordCount(text.trim() ? words : 0);
     },
@@ -44,24 +55,19 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
 
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
-      // Only update content if it's actually different to avoid unnecessary rerenders
-      const currentContent = editor.getHTML();
-      if (content !== editor.getText()) {
-        // Store the current selection and cursor position
+      if (htmlContent && editor.getHTML() !== htmlContent) {
         const { from, to } = editor.state.selection;
         const scrollPos = window.scrollY;
 
-        // Update content while preserving HTML formatting
-        editor.commands.setContent(currentContent);
+        editor.commands.setContent(htmlContent);
 
-        // Restore selection and scroll position
-        if (from <= (content?.length || 0) && to <= (content?.length || 0)) {
+        if (from <= editor.getText().length && to <= editor.getText().length) {
           editor.commands.setTextSelection({ from, to });
           window.scrollTo(0, scrollPos);
         }
       }
     }
-  }, [content, editor]);
+  }, [htmlContent, editor]);
 
   const analyze = async () => {
     if (!editor) return;
@@ -105,7 +111,10 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
         }
       });
 
+      // Store the highlighted content
+      onHtmlContentChange(editor.getHTML());
       onAnalysis(result);
+
       toast({
         title: "Analysis Complete",
         description: `Found ${result.issues.length} issues to review.`,
@@ -162,7 +171,6 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
           <EditorContent 
             editor={editor} 
             className="min-h-[400px] focus-within:outline-none"
-            placeholder="Enter your text here to analyze (10,000 words max)..."
           />
         </div>
       </div>

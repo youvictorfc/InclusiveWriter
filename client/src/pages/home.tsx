@@ -9,6 +9,7 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [mode, setMode] = useState<AnalysisMode>('language');
   const [content, setContent] = useState<string>('');
+  const [htmlContent, setHtmlContent] = useState<string>('');
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,7 +45,9 @@ export default function Home() {
                   onAnalysis={setAnalysis} 
                   mode={mode}
                   content={content}
+                  htmlContent={htmlContent}
                   onContentChange={setContent}
+                  onHtmlContentChange={setHtmlContent}
                 />
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">
