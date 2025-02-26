@@ -118,9 +118,11 @@ export function TextEditor({
       onAnalysis(result);
 
       toast({
+        variant: "default",
+        className: "bg-green-100 border-green-500",
         title: "Analysis Complete",
         description: (
-          <div onClick={onShowAnalysis} className="cursor-pointer hover:underline">
+          <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
             Found {result.issues.length} issues to review. Click to view analysis.
           </div>
         ),
