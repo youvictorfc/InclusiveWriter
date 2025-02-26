@@ -28,7 +28,7 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
         multicolor: true,
       }),
     ],
-    content: content,
+    content: content || '',
     editorProps: {
       attributes: {
         class: 'min-h-[400px] prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none',
@@ -42,10 +42,9 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
     },
   });
 
-  // Update editor content when content prop changes
   useEffect(() => {
-    if (editor && editor.getText() !== content) {
-      editor.commands.setContent(content);
+    if (editor && content !== editor.getText()) {
+      editor.commands.setContent(content || '');
     }
   }, [content, editor]);
 
