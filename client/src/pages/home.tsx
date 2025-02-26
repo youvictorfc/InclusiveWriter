@@ -16,11 +16,18 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/90 via-violet-500 to-primary animate-gradient">
               NOMW
             </h1>
-            <span className="text-sm text-muted-foreground">Inclusive Language Assistant</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-violet-500">
+                Inclusive Language
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Assistant
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <Select value={mode} onValueChange={(value) => setMode(value as AnalysisMode)}>
