@@ -40,9 +40,27 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
   const analyze = async () => {
     if (!editor) return;
 
+    const content = editor.getText().trim();
+    if (!content) {
+      toast({
+        variant: "destructive",
+        title: "Empty Content",
+        description: "Please enter some text to analyze.",
+      });
+      return;
+    }
+
+    if (wordCount > 10000) {
+      toast({
+        variant: "destructive",
+        title: "Content Too Long",
+        description: "Please limit your text to 10,000 words.",
+      });
+      return;
+    }
+
     setAnalyzing(true);
     try {
-      const content = editor.getText();
       const result = await analyzeText(content, mode);
 
       // Clear existing highlights
@@ -62,7 +80,6 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
       });
 
       onAnalysis(result);
-
       toast({
         title: "Analysis Complete",
         description: `Found ${result.issues.length} issues to review.`,
@@ -70,12 +87,24 @@ export function TextEditor({ onAnalysis, mode }: TextEditorProps) {
     } catch (error: any) {
       console.error('Analysis failed:', error);
 
-      // Handle rate limit error specifically
+      // Handle different error cases
       if (error.message?.includes('429')) {
         toast({
           variant: "destructive",
           title: "API Rate Limit Reached",
-          description: "Please wait a few minutes before trying again.",
+          description: "The API quota has been exceeded. Please try again later.",
+        });
+      } else if (error.message?.includes('401')) {
+        toast({
+          variant: "destructive",
+          title: "API Authentication Error",
+          description: "There's an issue with the API key. Please contact support.",
+        });
+      } else if (error.message?.includes('500')) {
+        toast({
+          variant: "destructive",
+          title: "Service Error",
+          description: "The analysis service is temporarily unavailable. Please try again later.",
         });
       } else {
         toast({

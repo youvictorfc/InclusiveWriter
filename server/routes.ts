@@ -5,6 +5,11 @@ import OpenAI from "openai";
 import { insertAnalysisSchema, type AnalysisMode, analysisResultSchema } from "@shared/schema";
 import { z } from "zod";
 
+// Validate OpenAI API key
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY environment variable is required");
+}
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const getGuidelinesForMode = (mode: AnalysisMode): string => {
@@ -131,7 +136,17 @@ export async function registerRoutes(app: Express) {
       if (error instanceof OpenAI.APIError) {
         if (error.status === 429) {
           return res.status(429).json({
-            error: "OpenAI API rate limit reached. Please try again in a few minutes."
+            error: "OpenAI API rate limit reached. Please check your API key quota and try again later."
+          });
+        }
+        if (error.status === 401) {
+          return res.status(401).json({
+            error: "Invalid OpenAI API key. Please check your API key configuration."
+          });
+        }
+        if (error.status === 500) {
+          return res.status(500).json({
+            error: "OpenAI service error. Please try again later."
           });
         }
         return res.status(error.status || 500).json({
