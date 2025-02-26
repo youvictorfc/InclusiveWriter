@@ -157,7 +157,7 @@ export function TextEditor({
         <div className="p-4">
           <EditorContent 
             editor={editor} 
-            className="focus-within:outline-none w-full"
+            className="focus-within:outline-none w-full h-[calc(100vh-300px)]"
           />
         </div>
       </div>
