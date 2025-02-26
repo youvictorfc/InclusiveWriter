@@ -43,8 +43,21 @@ export function TextEditor({ onAnalysis, mode, content, onContentChange }: TextE
   });
 
   useEffect(() => {
-    if (editor && content !== editor.getText()) {
-      editor.commands.setContent(content || '');
+    if (editor && !editor.isDestroyed) {
+      // Only update content if it's actually different to avoid unnecessary rerenders
+      const currentContent = editor.getText();
+      if (content !== currentContent) {
+        // Store the current selection
+        const { from, to } = editor.state.selection;
+
+        // Update content
+        editor.commands.setContent(content || '');
+
+        // Restore selection if it was within bounds
+        if (from <= (content?.length || 0) && to <= (content?.length || 0)) {
+          editor.commands.setTextSelection({ from, to });
+        }
+      }
     }
   }, [content, editor]);
 
