@@ -2,8 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { insertAnalysisSchema, type AnalysisMode, analysisResultSchema } from "@shared/schema";
-import { z } from "zod";
+import { type AnalysisMode, analysisResultSchema } from "@shared/schema";
 
 // Validate OpenAI API key
 if (!process.env.OPENAI_API_KEY) {
@@ -11,45 +10,6 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-const getGuidelinesForMode = (mode: AnalysisMode): string => {
-  switch (mode) {
-    case 'language':
-      return `
-      Analyze the text for general inclusive language issues including:
-      - Gender-neutral language
-      - Cultural sensitivity
-      - Disability-inclusive terminology
-      - Age-inclusive language
-      - Socioeconomic inclusion
-      - Avoiding exclusionary idioms
-      `;
-    case 'policy':
-      return `
-      Analyze policy documentation for inclusivity issues including:
-      - Legal compliance and regulatory framework alignment
-      - Universal accessibility considerations
-      - Organizational equity principles
-      - Accommodations language
-      - Remote and flexible work considerations
-      - Assistive technology compatibility
-      - Clear dispute resolution procedures
-      `;
-    case 'recruitment':
-      return `
-      Analyze recruitment content for inclusivity issues including:
-      - Job requirement neutrality
-      - Skills-based vs credential-based language
-      - Removal of gendered job descriptors
-      - Accessibility in application process
-      - Diverse candidate pool encouragement
-      - Inclusive workplace culture representation
-      - Flexible work arrangements
-      `;
-    default:
-      return 'Analyze the text for general inclusive language issues.';
-  }
-};
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 export async function registerRoutes(app: Express) {
@@ -71,8 +31,7 @@ export async function registerRoutes(app: Express) {
         messages: [
           {
             role: "system",
-            content: `You are an expert at identifying non-inclusive language. ${getGuidelinesForMode(mode as AnalysisMode)} 
-            Analyze the text and identify specific instances of non-inclusive language.
+            content: `You are an expert at identifying non-inclusive language. Analyze the text and identify specific instances of non-inclusive language.
             For each issue found, provide:
             1. The exact problematic text
             2. A suggested alternative
@@ -128,7 +87,7 @@ export async function registerRoutes(app: Express) {
         analysis: validatedAnalysis
       });
 
-      res.json(result);
+      res.json({ analysis: validatedAnalysis });
     } catch (error) {
       console.error('Analysis error:', error);
 
