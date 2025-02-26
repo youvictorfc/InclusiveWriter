@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { type AnalysisMode, analysisResultSchema } from "@shared/schema";
+import { setupAuth } from "./auth";
 
 // Validate OpenAI API key
 if (!process.env.OPENAI_API_KEY) {
@@ -13,6 +14,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 export async function registerRoutes(app: Express) {
+  // Set up authentication routes first
+  setupAuth(app);
+
   app.post("/api/analyze", async (req, res) => {
     try {
       const { content, mode } = req.body;
@@ -24,6 +28,11 @@ export async function registerRoutes(app: Express) {
 
       if (!mode || !['language', 'policy', 'recruitment'].includes(mode)) {
         throw new Error('Valid mode is required');
+      }
+
+      // Ensure user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const response = await openai.chat.completions.create({
