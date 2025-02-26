@@ -4,6 +4,7 @@ import { SuggestionsPanel } from '@/components/editor/suggestions-panel';
 import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -11,6 +12,11 @@ export default function Home() {
   const [content, setContent] = useState<string>('');
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [activeTab, setActiveTab] = useState('editor');
+  const { logoutMutation } = useAuth();
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,8 +52,12 @@ export default function Home() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <button className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Logout
+            <button
+              onClick={handleLogout}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              disabled={logoutMutation.isPending}
+            >
+              {logoutMutation.isPending ? "Logging out..." : "Logout"}
             </button>
           </div>
         </div>
@@ -66,8 +76,8 @@ export default function Home() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="editor" className="space-y-4">
-                <TextEditor 
-                  onAnalysis={setAnalysis} 
+                <TextEditor
+                  onAnalysis={setAnalysis}
                   mode={mode}
                   content={content}
                   htmlContent={htmlContent}
