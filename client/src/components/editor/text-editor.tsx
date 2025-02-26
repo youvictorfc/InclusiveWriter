@@ -42,7 +42,7 @@ export function TextEditor({
     content: htmlContent || content || '',
     editorProps: {
       attributes: {
-        class: 'min-h-[400px] prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none',
+        class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed',
       },
     },
     onUpdate: ({ editor }) => {
@@ -129,33 +129,11 @@ export function TextEditor({
       });
     } catch (error: any) {
       console.error('Analysis failed:', error);
-
-      // Handle different error cases
-      if (error.message?.includes('429')) {
-        toast({
-          variant: "destructive",
-          title: "API Rate Limit Reached",
-          description: "The API quota has been exceeded. Please try again later.",
-        });
-      } else if (error.message?.includes('401')) {
-        toast({
-          variant: "destructive",
-          title: "API Authentication Error",
-          description: "There's an issue with the API key. Please contact support.",
-        });
-      } else if (error.message?.includes('500')) {
-        toast({
-          variant: "destructive",
-          title: "Service Error",
-          description: "The analysis service is temporarily unavailable. Please try again later.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Analysis Failed",
-          description: error.message || "There was an error analyzing your text. Please try again.",
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: error.message || "There was an error analyzing your text. Please try again.",
+      });
     } finally {
       setAnalyzing(false);
     }
