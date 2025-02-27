@@ -107,9 +107,9 @@ export function TextEditor({
   }, [htmlContent, content, editor]);
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-[1200px] mx-auto space-y-6">
           <Card className="shadow-lg overflow-hidden">
             <div className="border-b px-6 py-3 flex items-center justify-between bg-card">
               <div className="flex items-center space-x-2">
@@ -144,7 +144,7 @@ export function TextEditor({
             <div className="px-8 py-6">
               <EditorContent
                 editor={editor}
-                className="focus-within:outline-none w-full"
+                className="focus-within:outline-none w-full prose dark:prose-invert prose-lg max-w-none"
               />
             </div>
           </Card>
