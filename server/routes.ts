@@ -55,31 +55,14 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const documentId = parseInt(req.params.id);
-      if (isNaN(documentId)) {
-        console.error('Invalid document ID:', req.params.id);
-        return res.status(400).json({ error: "Invalid document ID" });
-      }
-
-      console.log('Fetching document with ID:', documentId);
-      const document = await storage.getDocument(documentId);
-
+      const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
-        console.error('Document not found:', documentId);
         return res.status(404).json({ error: "Document not found" });
       }
 
       if (document.userId !== req.user.id) {
-        console.error('Access denied for user', req.user.id, 'trying to access document', documentId);
         return res.status(403).json({ error: "Access denied" });
       }
-
-      console.log('Successfully fetched document:', {
-        id: document.id,
-        title: document.title,
-        contentLength: document.content.length,
-        htmlContentLength: document.htmlContent.length
-      });
 
       res.json(document);
     } catch (error) {
@@ -167,17 +150,7 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const contentTypeText = contentTypeResponse.choices[0].message.content;
-      if (!contentTypeText) {
-        throw new Error('No response content from OpenAI');
-      }
-
-      const contentType = JSON.parse(contentTypeText) as {
-        type: 'policy' | 'recruitment' | 'general';
-        confidence: number;
-        explanation: string;
-      };
-
+      const contentType = JSON.parse(contentTypeResponse.choices[0].message.content);
       const detectedMode = contentType.type === 'general' ? 'language' : contentType.type;
       let modeSuggestion = null;
 
@@ -264,6 +237,7 @@ export async function registerRoutes(app: Express) {
           {
             role: "system",
             content: `${systemPrompt}
+
             Return the results in this exact JSON format:
             {
               "issues": [
@@ -286,21 +260,7 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const analysisText = response.choices[0].message.content;
-      if (!analysisText) {
-        throw new Error('No analysis content from OpenAI');
-      }
-
-      const analysisResult = JSON.parse(analysisText) as {
-        issues: Array<{
-          text: string;
-          startIndex: number;
-          endIndex: number;
-          suggestion: string;
-          reason: string;
-          severity: 'low' | 'medium' | 'high';
-        }>;
-      };
+      const analysisResult = JSON.parse(response.choices[0].message.content);
 
       // Create the analysis result with correct structure and include mode suggestion
       const result = {

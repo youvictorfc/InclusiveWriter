@@ -1,23 +1,22 @@
 import { Switch, Route } from "wouter";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
 import Documents from "@/pages/documents";
-import DocumentViewer from "@/pages/document-viewer";
 import { ProtectedRoute } from "@/lib/protected-route";
-import {
-  Sidebar,
-  SidebarContent,
+import { 
+  Sidebar, 
+  SidebarContent, 
   SidebarHeader,
   SidebarProvider,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarInset,
+  SidebarInset
 } from "@/components/ui/sidebar";
 import { Home as HomeIcon, FileText } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -29,9 +28,9 @@ function MainNav() {
     <SidebarMenu>
       <SidebarMenuItem>
         <Link href="/">
-          <SidebarMenuButton
-            asChild
-            isActive={location === "/"}
+          <SidebarMenuButton 
+            asChild 
+            isActive={location === "/"} 
             tooltip="Home"
           >
             <a className="flex items-center">
@@ -43,9 +42,9 @@ function MainNav() {
       </SidebarMenuItem>
       <SidebarMenuItem>
         <Link href="/documents">
-          <SidebarMenuButton
-            asChild
-            isActive={location.startsWith("/documents")}
+          <SidebarMenuButton 
+            asChild 
+            isActive={location === "/documents"} 
             tooltip="Documents"
           >
             <a className="flex items-center">
@@ -59,24 +58,20 @@ function MainNav() {
   );
 }
 
-function AppLayout({ children }: { children: React.ReactNode }) {
+function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="flex h-screen">
-        <div className="group">
-          <Sidebar className="transition-all duration-300 group-hover:w-64 w-16">
-            <SidebarHeader className="border-b flex items-center px-2 py-2">
-              <h2 className="text-lg font-semibold tracking-tight opacity-0 group-hover:opacity-100 transition-opacity duration-300">NOMW</h2>
-            </SidebarHeader>
-            <SidebarContent>
-              <MainNav />
-            </SidebarContent>
-          </Sidebar>
-        </div>
-        <SidebarInset className="flex-1 overflow-auto">
-          {children}
-        </SidebarInset>
-      </div>
+      <Sidebar>
+        <SidebarHeader className="border-b">
+          <h2 className="px-2 text-lg font-semibold tracking-tight">NOMW</h2>
+        </SidebarHeader>
+        <SidebarContent>
+          <MainNav />
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 }
@@ -85,29 +80,21 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute
-        path="/"
+      <ProtectedRoute 
+        path="/" 
         component={() => (
-          <AppLayout>
+          <Layout>
             <Home />
-          </AppLayout>
-        )}
+          </Layout>
+        )} 
       />
-      <ProtectedRoute
-        path="/documents"
+      <ProtectedRoute 
+        path="/documents" 
         component={() => (
-          <AppLayout>
+          <Layout>
             <Documents />
-          </AppLayout>
-        )}
-      />
-      <ProtectedRoute
-        path="/documents/:id"
-        component={({ params }) => (
-          <AppLayout>
-            <DocumentViewer params={params} />
-          </AppLayout>
-        )}
+          </Layout>
+        )} 
       />
       <Route component={NotFound} />
     </Switch>

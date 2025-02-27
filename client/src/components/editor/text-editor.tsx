@@ -10,7 +10,6 @@ import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { useLocation } from "wouter";
 
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
@@ -40,7 +39,6 @@ export function TextEditor({
   const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
 
   const saveMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; htmlContent: string }) => {
@@ -59,11 +57,6 @@ export function TextEditor({
         description: "Your document has been saved successfully.",
         className: "bg-green-100 border-green-500",
       });
-
-      // Only navigate if this is a new document
-      if (!documentId) {
-        setLocation(`/documents/${savedDoc.id}`);
-      }
     },
     onError: (error: Error) => {
       toast({
@@ -77,12 +70,14 @@ export function TextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Highlight.configure({ multicolor: true }),
+      Highlight.configure({
+        multicolor: true,
+      }),
     ],
     content: htmlContent || content || '',
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-lg focus:outline-none leading-relaxed min-h-[400px] placeholder:text-muted-foreground',
+        class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
         placeholder: 'Enter your text here to analyze (10,000 words max)...'
       },
     },
@@ -99,126 +94,189 @@ export function TextEditor({
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       if (htmlContent && editor.getHTML() !== htmlContent) {
+        const { from, to } = editor.state.selection;
+        const scrollPos = window.scrollY;
+
         editor.commands.setContent(htmlContent);
-      } else if (content && editor.getText() !== content) {
-        editor.commands.setContent(content);
+
+        if (from <= editor.getText().length && to <= editor.getText().length) {
+          editor.commands.setTextSelection({ from, to });
+          window.scrollTo(0, scrollPos);
+        }
       }
     }
-  }, [htmlContent, content, editor]);
+  }, [htmlContent, editor]);
+
+  const handleSave = async () => {
+    if (!editor) return;
+
+    const text = editor.getText().trim();
+    if (!text) {
+      toast({
+        title: "Empty Content",
+        description: "Please enter some text before saving.",
+        className: "bg-red-100 border-red-500",
+      });
+      return;
+    }
+
+    const title = text.split('\n')[0].slice(0, 50) || 'Untitled Document';
+    setSaving(true);
+
+    try {
+      await saveMutation.mutateAsync({
+        title,
+        content: text,
+        htmlContent: editor.getHTML(),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const analyze = async () => {
+    if (!editor) return;
+
+    const currentContent = editor.getText().trim();
+    if (!currentContent) {
+      toast({
+        title: "Empty Content",
+        description: "Please enter some text to analyze.",
+        className: "bg-red-100 border-red-500",
+      });
+      return;
+    }
+
+    if (wordCount > 10000) {
+      toast({
+        title: "Content Too Long",
+        description: "Please limit your text to 10,000 words.",
+        className: "bg-red-100 border-red-500",
+      });
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const result = await analyzeText(currentContent, mode);
+      console.log('Analysis result:', result);
+
+      editor.commands.unsetHighlight();
+
+      result.analysis.issues.forEach(issue => {
+        const text = editor.getText();
+        const index = text.indexOf(issue.text);
+        if (index !== -1) {
+          editor.chain()
+            .focus()
+            .setTextSelection({ from: index, to: index + issue.text.length })
+            .setHighlight({ color: issue.severity === 'high' ? '#fecaca' : issue.severity === 'medium' ? '#fef08a' : '#bfdbfe' })
+            .run();
+        }
+      });
+
+      if (result.modeSuggestion) {
+        toast({
+          id: "mode-suggestion",
+          title: "Mode Suggestion",
+          description: (
+            <div className="space-y-2">
+              <p>{result.modeSuggestion.explanation}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-2 bg-white hover:bg-yellow-50"
+                onClick={() => setMode(result.modeSuggestion!.suggestedMode)}
+              >
+                Switch to {result.modeSuggestion.suggestedMode} mode
+              </Button>
+            </div>
+          ),
+          className: "bg-yellow-100 border-yellow-500",
+          duration: 7000,
+        });
+      }
+
+      setTimeout(() => {
+        toast({
+          id: "analysis-complete",
+          title: "Analysis Complete",
+          description: (
+            <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
+              Found {result.analysis.issues.length} issues to review. Click to view analysis.
+            </div>
+          ),
+          className: "bg-green-100 border-green-500",
+          duration: 7000,
+        });
+      }, 100); 
+
+      onHtmlContentChange(editor.getHTML());
+      onAnalysis(result.analysis);
+
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "There was an error analyzing your text. Please try again.",
+        className: "bg-red-100 border-red-500",
+      });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6">
-        <div className="max-w-[1200px] mx-auto space-y-6">
-          <Card className="shadow-lg overflow-hidden">
-            <div className="border-b px-6 py-3 flex items-center justify-between bg-card">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground"
-                  onClick={() => saveMutation.mutate({
-                    title: editor?.getText().split('\n')[0].slice(0, 50) || 'Untitled Document',
-                    content: editor?.getText() || '',
-                    htmlContent: editor?.getHTML() || '',
-                  })}
-                  disabled={saving || !editor?.getText().trim()}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save
-                    </>
-                  )}
-                </Button>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {wordCount} / 10,000 words
-              </div>
-            </div>
-            <div className="px-8 py-6">
-              <EditorContent
-                editor={editor}
-                className="focus-within:outline-none w-full prose dark:prose-invert prose-lg max-w-none"
-              />
-            </div>
-          </Card>
-          <div className="flex justify-end">
-            <Button
-              onClick={async () => {
-                if (!editor?.getText().trim()) {
-                  toast({
-                    title: "Empty Content",
-                    description: "Please enter some text to analyze.",
-                    className: "bg-red-100 border-red-500",
-                  });
-                  return;
-                }
-
-                if (wordCount > 10000) {
-                  toast({
-                    title: "Content Too Long",
-                    description: "Please limit your text to 10,000 words.",
-                    className: "bg-red-100 border-red-500",
-                  });
-                  return;
-                }
-
-                setAnalyzing(true);
-                try {
-                  const result = await analyzeText(editor.getText(), mode);
-                  onAnalysis(result.analysis);
-                  onShowAnalysis();
-
-                  if (result.modeSuggestion) {
-                    toast({
-                      title: "Mode Suggestion",
-                      description: (
-                        <div className="space-y-2">
-                          <p>{result.modeSuggestion.explanation}</p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full mt-2 bg-white hover:bg-yellow-50"
-                            onClick={() => setMode(result.modeSuggestion!.suggestedMode)}
-                          >
-                            Switch to {result.modeSuggestion.suggestedMode} mode
-                          </Button>
-                        </div>
-                      ),
-                      className: "bg-yellow-100 border-yellow-500",
-                      duration: 7000,
-                    });
-                  }
-                } catch (error: any) {
-                  toast({
-                    title: "Analysis Failed",
-                    description: error.message || "Failed to analyze text. Please try again.",
-                    className: "bg-red-100 border-red-500",
-                  });
-                } finally {
-                  setAnalyzing(false);
-                }
-              }}
-              disabled={analyzing || !editor?.getText().trim() || wordCount > 10000}
-              className="w-[140px]"
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-card w-full">
+        <div className="border-b px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground"
+              onClick={handleSave}
+              disabled={saving}
             >
-              {analyzing ? (
+              {saving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
                 </>
               ) : (
-                'Analyze Text'
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save
+                </>
               )}
             </Button>
           </div>
+          <div className="text-sm text-muted-foreground">
+            {wordCount} / 10,000 words
+          </div>
         </div>
+        <div className="p-4">
+          <EditorContent
+            editor={editor}
+            className="focus-within:outline-none w-full"
+          />
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <Button
+          onClick={analyze}
+          disabled={analyzing || !editor?.getText().trim() || wordCount > 10000}
+          className="w-[140px]"
+        >
+          {analyzing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            'Analyze Text'
+          )}
+        </Button>
       </div>
     </div>
   );

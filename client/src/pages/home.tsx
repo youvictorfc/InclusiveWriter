@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { TextEditor } from '@/components/editor/text-editor';
 import { SuggestionsPanel } from '@/components/editor/suggestions-panel';
-import { type AnalysisResult, type AnalysisMode, type Document } from '@shared/schema';
+import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -20,40 +19,18 @@ export default function Home() {
   const documentId = location.startsWith('/documents/') ? parseInt(location.split('/')[2]) : undefined;
 
   // Fetch document if we have an ID
-  const { data: document, isLoading, error } = useQuery<Document>({
+  const { data: document } = useQuery({
     queryKey: ['/api/documents', documentId],
     enabled: !!documentId,
-    retry: false,
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   // Set content from document when it loads
-  useEffect(() => {
+  useState(() => {
     if (document) {
-      console.log('Loading document:', document);
       setContent(document.content);
       setHtmlContent(document.htmlContent);
     }
   }, [document]);
-
-  // Show loading state while document is being fetched
-  if (documentId && isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Show error state if document fetch failed
-  if (documentId && error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-red-500">
-        Error loading document. Please try again.
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
