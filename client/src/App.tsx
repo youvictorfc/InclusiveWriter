@@ -100,6 +100,14 @@ function Router() {
           </Layout>
         )} 
       />
+      <ProtectedRoute 
+        path="/documents/:id" 
+        component={() => (
+          <Layout>
+            <Home />
+          </Layout>
+        )} 
+      />
       <Route component={NotFound} />
     </Switch>
   );
