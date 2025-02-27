@@ -17,7 +17,7 @@ interface TextEditorProps {
   onContentChange: (content: string) => void;
   onHtmlContentChange: (html: string) => void;
   onShowAnalysis: () => void;
-  setMode: (mode: AnalysisMode) => void; // Added setMode function
+  setMode: (mode: AnalysisMode) => void;
 }
 
 export function TextEditor({
@@ -28,7 +28,7 @@ export function TextEditor({
   onContentChange,
   onHtmlContentChange,
   onShowAnalysis,
-  setMode, // Added setMode prop
+  setMode,
 }: TextEditorProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [wordCount, setWordCount] = useState(0);
