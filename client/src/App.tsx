@@ -67,7 +67,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         className="group/sidebar transition-all duration-300 ease-in-out hover:w-64"
       >
         <SidebarHeader className="border-b">
-          <h2 className="px-2 text-lg font-semibold tracking-tight">NOMW</h2>
+          <h2 className="px-2 text-lg font-semibold tracking-tight transition-opacity duration-300 group-data-[collapsible=icon]:opacity-0 group-hover/sidebar:opacity-100">NOMW</h2>
         </SidebarHeader>
         <SidebarContent>
           <MainNav />
