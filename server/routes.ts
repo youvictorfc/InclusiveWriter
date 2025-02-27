@@ -167,7 +167,17 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const contentType = JSON.parse(contentTypeResponse.choices[0].message.content);
+      const contentTypeText = contentTypeResponse.choices[0].message.content;
+      if (!contentTypeText) {
+        throw new Error('No response content from OpenAI');
+      }
+
+      const contentType = JSON.parse(contentTypeText) as {
+        type: 'policy' | 'recruitment' | 'general';
+        confidence: number;
+        explanation: string;
+      };
+
       const detectedMode = contentType.type === 'general' ? 'language' : contentType.type;
       let modeSuggestion = null;
 
@@ -254,7 +264,6 @@ export async function registerRoutes(app: Express) {
           {
             role: "system",
             content: `${systemPrompt}
-
             Return the results in this exact JSON format:
             {
               "issues": [
@@ -277,7 +286,21 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const analysisResult = JSON.parse(response.choices[0].message.content);
+      const analysisText = response.choices[0].message.content;
+      if (!analysisText) {
+        throw new Error('No analysis content from OpenAI');
+      }
+
+      const analysisResult = JSON.parse(analysisText) as {
+        issues: Array<{
+          text: string;
+          startIndex: number;
+          endIndex: number;
+          suggestion: string;
+          reason: string;
+          severity: 'low' | 'medium' | 'high';
+        }>;
+      };
 
       // Create the analysis result with correct structure and include mode suggestion
       const result = {
