@@ -94,6 +94,29 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.delete("/api/documents/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const document = await storage.getDocument(parseInt(req.params.id));
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (document.userId !== req.user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      await storage.deleteDocument(document.id);
+      res.json({ message: "Document deleted successfully" });
+    } catch (error) {
+      console.error('Document deletion error:', error);
+      res.status(500).json({ error: 'Failed to delete document' });
+    }
+  });
+
   app.post("/api/analyze", async (req, res) => {
     try {
       const { content, mode } = req.body;
