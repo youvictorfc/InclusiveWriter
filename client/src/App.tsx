@@ -103,15 +103,15 @@ function Router() {
       />
       <ProtectedRoute 
         path="/documents/:id" 
-        component={(props) => (
+        component={({ params }) => (
           <Layout>
-            <DocumentViewer params={props.params} />
+            <DocumentViewer params={params} />
           </Layout>
         )} 
       />
       <ProtectedRoute 
         path="/documents/:id/edit" 
-        component={() => (
+        component={({ params }) => (
           <Layout>
             <Home />
           </Layout>
