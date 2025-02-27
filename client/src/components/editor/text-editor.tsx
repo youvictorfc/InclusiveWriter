@@ -80,18 +80,18 @@ export function TextEditor({
     const currentContent = editor.getText().trim();
     if (!currentContent) {
       toast({
-        variant: "destructive",
         title: "Empty Content",
         description: "Please enter some text to analyze.",
+        variant: "destructive",
       });
       return;
     }
 
     if (wordCount > 10000) {
       toast({
-        variant: "destructive",
         title: "Content Too Long",
         description: "Please limit your text to 10,000 words.",
+        variant: "destructive",
       });
       return;
     }
@@ -115,16 +115,11 @@ export function TextEditor({
         }
       });
 
-      onHtmlContentChange(editor.getHTML());
-      onAnalysis(result.analysis);
-
-      // Show both toasts simultaneously
+      // Show both notifications immediately
       if (result.modeSuggestion) {
-        console.log('Showing mode suggestion:', result.modeSuggestion);
         toast({
           id: "mode-suggestion",
           title: "Mode Suggestion",
-          className: "bg-yellow-100 border-yellow-500",
           description: (
             <div className="space-y-2">
               <p>{result.modeSuggestion.explanation}</p>
@@ -138,6 +133,7 @@ export function TextEditor({
               </Button>
             </div>
           ),
+          className: "bg-yellow-100 border-yellow-500",
           duration: 7000,
         });
       }
@@ -145,14 +141,17 @@ export function TextEditor({
       toast({
         id: "analysis-complete",
         title: "Analysis Complete",
-        className: "bg-green-100 border-green-500",
         description: (
           <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
             Found {result.analysis.issues.length} issues to review. Click to view analysis.
           </div>
         ),
+        className: "bg-green-100 border-green-500",
         duration: 7000,
       });
+
+      onHtmlContentChange(editor.getHTML());
+      onAnalysis(result.analysis);
 
     } catch (error: any) {
       console.error('Analysis error:', error);
