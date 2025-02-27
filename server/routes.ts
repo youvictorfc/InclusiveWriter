@@ -57,19 +57,30 @@ export async function registerRoutes(app: Express) {
 
       const documentId = parseInt(req.params.id);
       if (isNaN(documentId)) {
+        console.error('Invalid document ID:', req.params.id);
         return res.status(400).json({ error: "Invalid document ID" });
       }
 
+      console.log('Fetching document with ID:', documentId);
       const document = await storage.getDocument(documentId);
+
       if (!document) {
+        console.error('Document not found:', documentId);
         return res.status(404).json({ error: "Document not found" });
       }
 
       if (document.userId !== req.user.id) {
+        console.error('Access denied for user', req.user.id, 'trying to access document', documentId);
         return res.status(403).json({ error: "Access denied" });
       }
 
-      console.log('Fetched document:', document); // Add logging
+      console.log('Successfully fetched document:', {
+        id: document.id,
+        title: document.title,
+        contentLength: document.content.length,
+        htmlContentLength: document.htmlContent.length
+      });
+
       res.json(document);
     } catch (error) {
       console.error('Document fetch error:', error);
