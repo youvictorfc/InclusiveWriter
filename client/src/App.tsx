@@ -16,7 +16,8 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarInset
+  SidebarInset,
+  SidebarRail
 } from "@/components/ui/sidebar";
 import { Home as HomeIcon, FileText } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -60,14 +61,15 @@ function MainNav() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
-      <Sidebar>
+    <SidebarProvider defaultOpen={false}>
+      <Sidebar collapsible="icon">
         <SidebarHeader className="border-b">
           <h2 className="px-2 text-lg font-semibold tracking-tight">NOMW</h2>
         </SidebarHeader>
         <SidebarContent>
           <MainNav />
         </SidebarContent>
+        <SidebarRail />
       </Sidebar>
       <SidebarInset>
         {children}
