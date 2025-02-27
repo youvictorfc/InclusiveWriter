@@ -99,12 +99,10 @@ export function TextEditor({
     setAnalyzing(true);
     try {
       const result = await analyzeText(currentContent, mode);
-      console.log('Analysis result:', result); // Debug log
+      console.log('Analysis result:', result); 
 
-      // Clear existing highlights
       editor.commands.unsetHighlight();
 
-      // Apply new highlights based on found issues
       result.analysis.issues.forEach(issue => {
         const text = editor.getText();
         const index = text.indexOf(issue.text);
@@ -117,13 +115,11 @@ export function TextEditor({
         }
       });
 
-      // Store the highlighted content
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
 
-      // Show mode suggestion if available
       if (result.modeSuggestion) {
-        console.log('Showing mode suggestion:', result.modeSuggestion); // Debug log
+        console.log('Showing mode suggestion:', result.modeSuggestion); 
         toast({
           variant: "default",
           className: "bg-yellow-100 border-yellow-500",
@@ -133,28 +129,31 @@ export function TextEditor({
               <p>{result.modeSuggestion.explanation}</p>
               <Button
                 variant="outline"
-                className="w-full mt-2"
+                size="sm"
+                className="w-full mt-2 bg-white hover:bg-yellow-50"
                 onClick={() => setMode(result.modeSuggestion!.suggestedMode)}
               >
                 Switch to {result.modeSuggestion.suggestedMode} mode
               </Button>
             </div>
           ),
-          duration: 10000, // Show for longer since it's important
+          duration: 10000, 
         });
       }
 
-      // Show analysis completion toast
-      toast({
-        variant: "default",
-        className: "bg-green-100 border-green-500",
-        title: "Analysis Complete",
-        description: (
-          <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
-            Found {result.analysis.issues.length} issues to review. Click to view analysis.
-          </div>
-        ),
-      });
+      setTimeout(() => {
+        toast({
+          variant: "default",
+          className: "bg-green-100 border-green-500",
+          title: "Analysis Complete",
+          description: (
+            <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
+              Found {result.analysis.issues.length} issues to review. Click to view analysis.
+            </div>
+          ),
+        });
+      }, result.modeSuggestion ? 500 : 0); 
+
     } catch (error: any) {
       console.error('Analysis error:', error);
       toast({
