@@ -104,7 +104,7 @@ export function TextEditor({
       editor.commands.unsetHighlight();
 
       // Apply new highlights based on found issues
-      result.issues.forEach(issue => {
+      result.analysis.issues.forEach(issue => {
         const text = editor.getText();
         const index = text.indexOf(issue.text);
         if (index !== -1) {
@@ -118,42 +118,43 @@ export function TextEditor({
 
       // Store the highlighted content
       onHtmlContentChange(editor.getHTML());
-      onAnalysis(result);
+      onAnalysis(result.analysis);
 
+      // Show mode suggestion if available
+      if (result.modeSuggestion) {
+        toast({
+          variant: "default",
+          className: "bg-yellow-100 border-yellow-500",
+          title: "Mode Suggestion",
+          description: (
+            <div className="space-y-2">
+              <p>{result.modeSuggestion.explanation}</p>
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => setMode(result.modeSuggestion.suggestedMode)}
+              >
+                Switch to {result.modeSuggestion.suggestedMode} mode
+              </Button>
+            </div>
+          ),
+          duration: 10000, // Show for longer since it's important
+        });
+      }
+
+      // Show analysis completion toast
       toast({
         variant: "default",
         className: "bg-green-100 border-green-500",
         title: "Analysis Complete",
         description: (
           <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
-            Found {result.issues.length} issues to review. Click to view analysis.
+            Found {result.analysis.issues.length} issues to review. Click to view analysis.
           </div>
         ),
       });
     } catch (error: any) {
       console.error('Analysis failed:', error);
-
-      // Check if it's a mode mismatch error
-      if (error.response?.status === 400 && error.response?.data?.error === "Mode mismatch") {
-        toast({
-          variant: "destructive",
-          title: "Wrong Analysis Mode",
-          description: (
-            <div className="space-y-2">
-              <p>{error.response.data.message}</p>
-              <Button
-                variant="outline"
-                className="w-full mt-2"
-                onClick={() => setMode(error.response.data.suggestedMode)}
-              >
-                Switch to {error.response.data.suggestedMode} mode
-              </Button>
-            </div>
-          ),
-        });
-        return;
-      }
-
       toast({
         variant: "destructive",
         title: "Analysis Failed",

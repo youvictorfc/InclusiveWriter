@@ -63,14 +63,14 @@ export async function registerRoutes(app: Express) {
 
       const contentType = JSON.parse(contentTypeResponse.choices[0].message.content);
       const detectedMode = contentType.type === 'general' ? 'language' : contentType.type;
+      let modeSuggestion = null;
 
       // If there's a mismatch between selected mode and detected content type
       if (mode !== detectedMode && contentType.confidence > 0.7) {
-        return res.status(400).json({
-          error: "Mode mismatch",
-          message: `It looks like you're trying to analyze ${contentType.type} content using the ${mode} mode. ${contentType.explanation} For better results, please switch to the ${detectedMode} mode.`,
-          suggestedMode: detectedMode
-        });
+        modeSuggestion = {
+          suggestedMode: detectedMode,
+          explanation: `It looks like you're analyzing ${contentType.type} content. ${contentType.explanation} You might get better results using the ${detectedMode} mode.`
+        };
       }
 
       // Select the appropriate system prompt based on mode
@@ -170,34 +170,24 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      if (!response.choices[0].message.content) {
-        throw new Error("No response from OpenAI");
-      }
-
       const analysisResult = JSON.parse(response.choices[0].message.content);
 
-      // Create the analysis result with correct structure
-      const validatedResult = {
-        issues: analysisResult.issues.map((issue: any) => ({
-          text: issue.text,
-          startIndex: 0, // We'll calculate these on the frontend
-          endIndex: 0,   // since they depend on the actual text placement
-          suggestion: issue.suggestion,
-          reason: issue.reason,
-          severity: issue.severity,
-        }))
+      // Create the analysis result with correct structure and include mode suggestion if any
+      const result = {
+        analysis: {
+          issues: analysisResult.issues.map((issue: any) => ({
+            text: issue.text,
+            startIndex: 0,
+            endIndex: 0,
+            suggestion: issue.suggestion,
+            reason: issue.reason,
+            severity: issue.severity,
+          }))
+        },
+        modeSuggestion
       };
 
-      // Validate the analysis result
-      const validatedAnalysis = await analysisResultSchema.parseAsync(validatedResult);
-
-      const result = await storage.createAnalysis({
-        content,
-        mode,
-        analysis: validatedAnalysis
-      });
-
-      res.json({ analysis: validatedAnalysis });
+      res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);
 
@@ -223,8 +213,8 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      res.status(400).json({ 
-        error: error instanceof Error ? error.message : 'Analysis failed' 
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Analysis failed'
       });
     }
   });
