@@ -18,16 +18,17 @@ declare global {
   }
 }
 
-// Configure nodemailer with environment variables
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// Configure nodemailer but don't fail if credentials aren't available
+const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD ? 
+  nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  }) : null;
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -49,17 +50,19 @@ async function generateVerificationToken(): Promise<string> {
 async function sendVerificationEmail(email: string, token: string) {
   const verificationUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: "Verify your email for NOMW",
-    html: `
-      <h1>Welcome to NOMW!</h1>
-      <p>Please click the link below to verify your email address:</p>
-      <a href="${verificationUrl}">${verificationUrl}</a>
-      <p>This link will expire in 24 hours.</p>
-    `,
-  });
+  if (transporter) { //Only send if transporter is configured.
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Verify your email for NOMW",
+      html: `
+        <h1>Welcome to NOMW!</h1>
+        <p>Please click the link below to verify your email address:</p>
+        <a href="${verificationUrl}">${verificationUrl}</a>
+        <p>This link will expire in 24 hours.</p>
+      `,
+    });
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -88,9 +91,10 @@ export function setupAuth(app: Express) {
         if (!user || !(await comparePasswords(password, user.passwordHash))) {
           return done(null, false, { message: "Invalid username or password" });
         }
-        if (!user.isVerified) {
-          return done(null, false, { message: "Please verify your email first" });
-        }
+        // Temporarily disable verification check
+        // if (!user.isVerified) {
+        //   return done(null, false, { message: "Please verify your email first" });
+        // }
         return done(null, user);
       } catch (error) {
         return done(error);
@@ -123,28 +127,22 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
-      const verificationToken = await generateVerificationToken();
-      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
-
       const passwordHash = await hashPassword(req.body.password);
       const user = await storage.createUser({
         ...req.body,
         passwordHash,
-        verificationToken,
-        verificationExpires,
-        isVerified: false
+        isVerified: true, // Temporarily set to true
+        verificationToken: null,
+        verificationExpires: null
       });
 
-      try {
-        await sendVerificationEmail(req.body.email, verificationToken);
-      } catch (error) {
-        console.error('Failed to send verification email:', error);
-        return res.status(500).json({ message: "Failed to send verification email" });
-      }
-
-      res.status(201).json({ 
-        message: "Registration successful. Please check your email to verify your account.",
-        username: user.username
+      // Auto-login after registration
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Login error:', err);
+          return res.status(500).json({ message: "Error during auto-login" });
+        }
+        res.status(201).json(user);
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
