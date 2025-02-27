@@ -134,24 +134,22 @@ export function TextEditor({
               </Button>
             </div>
           ),
-          duration: 10000, 
+          duration: 7000, 
         });
       }
 
-      // Always show analysis results after mode suggestion
-      setTimeout(() => {
-        toast({
-          variant: "default",
-          className: "bg-green-100 border-green-500",
-          title: "Analysis Complete",
-          description: (
-            <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
-              Found {result.analysis.issues.length} issues to review. Click to view analysis.
-            </div>
-          ),
-          duration: 7000,
-        });
-      }, result.modeSuggestion ? 1000 : 0); 
+      // Show analysis results immediately after mode suggestion
+      toast({
+        variant: "default",
+        className: "bg-green-100 border-green-500",
+        title: "Analysis Complete",
+        description: (
+          <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
+            Found {result.analysis.issues.length} issues to review. Click to view analysis.
+          </div>
+        ),
+        duration: 7000,
+      });
 
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
