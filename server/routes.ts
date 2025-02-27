@@ -46,6 +46,18 @@ export async function registerRoutes(app: Express) {
               2. A recruitment document (job posting, job description, or hiring-related content)
               3. General text (any other type of content)
 
+              For policy documents, look for:
+              - Organizational rules and procedures
+              - Guidelines for employee behavior
+              - Company-wide standards
+              - Terms and conditions
+
+              For recruitment documents, look for:
+              - Job requirements and qualifications
+              - Position descriptions
+              - Hiring process details
+              - Candidate requirements
+
               Return the result in this exact JSON format:
               {
                 "type": "policy" | "recruitment" | "general",
