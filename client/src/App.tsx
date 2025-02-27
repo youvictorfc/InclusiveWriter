@@ -61,7 +61,7 @@ function MainNav() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider defaultCollapsed={true}>
+    <SidebarProvider>
       <div className="flex h-screen">
         <div className="group">
           <Sidebar className="transition-all duration-300 group-hover:w-64 w-16">
@@ -103,9 +103,9 @@ function Router() {
       />
       <ProtectedRoute 
         path="/documents/:id" 
-        component={(params) => (
+        component={(props) => (
           <Layout>
-            <DocumentViewer params={params} />
+            <DocumentViewer params={props.params} />
           </Layout>
         )} 
       />
