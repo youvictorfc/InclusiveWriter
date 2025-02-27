@@ -22,21 +22,22 @@ export default function Home() {
   // Fetch document if we have an ID
   const { data: document, isLoading, error } = useQuery<Document>({
     queryKey: ['/api/documents', documentId],
-    enabled: !!documentId, // Only run query if we have a document ID
-    retry: 1, // Limit retries to avoid infinite loops
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: true, // Refetch when component mounts
+    enabled: !!documentId,
+    retry: false,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   // Set content from document when it loads
   useEffect(() => {
     if (document) {
       console.log('Loading document:', document);
-      setContent(document.content || '');
-      setHtmlContent(document.htmlContent || '');
+      setContent(document.content);
+      setHtmlContent(document.htmlContent);
     }
   }, [document]);
 
+  // Show loading state while document is being fetched
   if (documentId && isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -45,6 +46,7 @@ export default function Home() {
     );
   }
 
+  // Show error state if document fetch failed
   if (documentId && error) {
     return (
       <div className="flex items-center justify-center min-h-screen text-red-500">

@@ -8,6 +8,9 @@ import { type Document } from '@shared/schema';
 export default function Documents() {
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ['/api/documents'],
+    retry: 1,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   return (
@@ -31,12 +34,14 @@ export default function Documents() {
           ) : (
             documents?.map((doc) => (
               <Link key={doc.id} href={`/documents/${doc.id}`}>
-                <Card className="p-4 hover:bg-accent cursor-pointer">
-                  <h3 className="font-medium">{doc.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Last updated: {new Date(doc.updatedAt).toLocaleDateString()}
-                  </p>
-                </Card>
+                <a className="block">
+                  <Card className="p-4 hover:bg-accent cursor-pointer">
+                    <h3 className="font-medium">{doc.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Last updated: {new Date(doc.updatedAt).toLocaleDateString()}
+                    </p>
+                  </Card>
+                </a>
               </Link>
             ))
           )}
