@@ -62,7 +62,10 @@ function MainNav() {
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={false}>
-      <Sidebar collapsible="icon">
+      <Sidebar 
+        collapsible="icon" 
+        className="group/sidebar transition-all duration-300 ease-in-out hover:w-64"
+      >
         <SidebarHeader className="border-b">
           <h2 className="px-2 text-lg font-semibold tracking-tight">NOMW</h2>
         </SidebarHeader>
