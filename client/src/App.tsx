@@ -11,7 +11,7 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import { 
   Sidebar, 
   SidebarContent, 
-  SidebarHeader,
+  //SidebarHeader, // Removed as it's redefined in AppLayout
   SidebarProvider,
   SidebarMenu,
   SidebarMenuItem,
@@ -65,54 +65,52 @@ function MainNav() {
   );
 }
 
-function Layout({ children }: { children: React.ReactNode }) {
-  const { state } = useSidebar();
-
+function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider defaultOpen={false}>
-      <Sidebar 
-        collapsible="icon" 
-        className="group/sidebar transition-all duration-300 ease-in-out hover:w-64"
-      >
-        <SidebarHeader className="border-b">
-          <h2 className={`px-2 text-lg font-semibold tracking-tight transition-opacity duration-300 ${state === 'collapsed' ? 'opacity-0' : 'opacity-100'}`}>
-            NOMW
-          </h2>
-        </SidebarHeader>
-        <SidebarContent>
-          <MainNav />
-        </SidebarContent>
-        <SidebarRail />
-      </Sidebar>
+    <Sidebar 
+      collapsible="icon" 
+      className="group/sidebar transition-all duration-300 ease-in-out hover:w-64"
+    >
+      <div className="border-b">
+        <h2 className={`px-2 text-lg font-semibold tracking-tight transition-opacity duration-300 group-hover/sidebar:opacity-100 group-[.group/sidebar]:data-[state=collapsed]:opacity-0`}>
+          NOMW
+        </h2>
+      </div>
+      <SidebarContent>
+        <MainNav />
+      </SidebarContent>
+      <SidebarRail />
       <SidebarInset>
         {children}
       </SidebarInset>
-    </SidebarProvider>
+    </Sidebar>
   );
 }
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute 
-        path="/" 
-        component={() => (
-          <Layout>
-            <Home />
-          </Layout>
-        )} 
-      />
-      <ProtectedRoute 
-        path="/documents" 
-        component={() => (
-          <Layout>
-            <Documents />
-          </Layout>
-        )} 
-      />
-      <Route component={NotFound} />
-    </Switch>
+    <SidebarProvider defaultOpen={false}>
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
+        <ProtectedRoute 
+          path="/" 
+          component={() => (
+            <AppLayout>
+              <Home />
+            </AppLayout>
+          )} 
+        />
+        <ProtectedRoute 
+          path="/documents" 
+          component={() => (
+            <AppLayout>
+              <Documents />
+            </AppLayout>
+          )} 
+        />
+        <Route component={NotFound} />
+      </Switch>
+    </SidebarProvider>
   );
 }
 
