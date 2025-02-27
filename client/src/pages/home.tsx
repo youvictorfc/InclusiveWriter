@@ -84,6 +84,7 @@ export default function Home() {
                   onContentChange={setContent}
                   onHtmlContentChange={setHtmlContent}
                   onShowAnalysis={() => setActiveTab('analysis')}
+                  setMode={setMode}
                 />
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">
