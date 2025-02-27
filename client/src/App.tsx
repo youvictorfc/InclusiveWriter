@@ -2,7 +2,7 @@ import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
@@ -20,56 +20,73 @@ import {
   SidebarInset,
   SidebarRail
 } from "@/components/ui/sidebar";
-import { Home as HomeIcon, FileText, Settings as SettingsIcon } from "lucide-react";
+import { Home as HomeIcon, FileText, Settings as SettingsIcon, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 function MainNav() {
   const [location] = useLocation();
+  const { logoutMutation } = useAuth();
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <Link href="/">
+    <SidebarMenu className="flex flex-col h-full">
+      <div className="flex-grow">
+        <SidebarMenuItem>
+          <Link href="/">
+            <SidebarMenuButton 
+              asChild 
+              isActive={location === "/"} 
+              tooltip="Home"
+            >
+              <a className="flex items-center">
+                <HomeIcon className="mr-2" />
+                <span>Home</span>
+              </a>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/documents">
+            <SidebarMenuButton 
+              asChild 
+              isActive={location === "/documents"} 
+              tooltip="Documents"
+            >
+              <a className="flex items-center">
+                <FileText className="mr-2" />
+                <span>Documents</span>
+              </a>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/settings">
+            <SidebarMenuButton 
+              asChild 
+              isActive={location === "/settings"} 
+              tooltip="Settings"
+            >
+              <a className="flex items-center">
+                <SettingsIcon className="mr-2" />
+                <span>Settings</span>
+              </a>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+      </div>
+      <div className="mt-auto border-t pt-2">
+        <SidebarMenuItem>
           <SidebarMenuButton 
             asChild 
-            isActive={location === "/"} 
-            tooltip="Home"
+            tooltip="Logout"
+            onClick={() => logoutMutation.mutate()}
           >
-            <a className="flex items-center">
-              <HomeIcon className="mr-2" />
-              <span>Home</span>
-            </a>
+            <button className="flex items-center w-full text-left">
+              <LogOut className="mr-2" />
+              <span>{logoutMutation.isPending ? "Logging out..." : "Logout"}</span>
+            </button>
           </SidebarMenuButton>
-        </Link>
-      </SidebarMenuItem>
-      <SidebarMenuItem>
-        <Link href="/documents">
-          <SidebarMenuButton 
-            asChild 
-            isActive={location === "/documents"} 
-            tooltip="Documents"
-          >
-            <a className="flex items-center">
-              <FileText className="mr-2" />
-              <span>Documents</span>
-            </a>
-          </SidebarMenuButton>
-        </Link>
-      </SidebarMenuItem>
-      <SidebarMenuItem>
-        <Link href="/settings">
-          <SidebarMenuButton 
-            asChild 
-            isActive={location === "/settings"} 
-            tooltip="Settings"
-          >
-            <a className="flex items-center">
-              <SettingsIcon className="mr-2" />
-              <span>Settings</span>
-            </a>
-          </SidebarMenuButton>
-        </Link>
-      </SidebarMenuItem>
+        </SidebarMenuItem>
+      </div>
     </SidebarMenu>
   );
 }
