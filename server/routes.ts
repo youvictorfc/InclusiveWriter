@@ -35,6 +35,44 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
+      // First, detect the content type
+      const contentTypeResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert at identifying document types. Analyze the given text and determine if it is:
+              1. A policy document (containing organizational guidelines, rules, or procedures)
+              2. A recruitment document (job posting, job description, or hiring-related content)
+              3. General text (any other type of content)
+
+              Return the result in this exact JSON format:
+              {
+                "type": "policy" | "recruitment" | "general",
+                "confidence": number between 0 and 1,
+                "explanation": "brief explanation of why this classification was made"
+              }`
+          },
+          {
+            role: "user",
+            content
+          }
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      const contentType = JSON.parse(contentTypeResponse.choices[0].message.content);
+      const detectedMode = contentType.type === 'general' ? 'language' : contentType.type;
+
+      // If there's a mismatch between selected mode and detected content type
+      if (mode !== detectedMode && contentType.confidence > 0.7) {
+        return res.status(400).json({
+          error: "Mode mismatch",
+          message: `It looks like you're trying to analyze ${contentType.type} content using the ${mode} mode. ${contentType.explanation} For better results, please switch to the ${detectedMode} mode.`,
+          suggestedMode: detectedMode
+        });
+      }
+
       // Select the appropriate system prompt based on mode
       let systemPrompt = '';
       switch (mode) {

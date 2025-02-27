@@ -17,16 +17,18 @@ interface TextEditorProps {
   onContentChange: (content: string) => void;
   onHtmlContentChange: (html: string) => void;
   onShowAnalysis: () => void;
+  setMode: (mode: AnalysisMode) => void; // Added setMode function
 }
 
-export function TextEditor({ 
-  onAnalysis, 
-  mode, 
-  content, 
+export function TextEditor({
+  onAnalysis,
+  mode,
+  content,
   htmlContent,
-  onContentChange, 
+  onContentChange,
   onHtmlContentChange,
-  onShowAnalysis
+  onShowAnalysis,
+  setMode, // Added setMode prop
 }: TextEditorProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [wordCount, setWordCount] = useState(0);
@@ -130,6 +132,28 @@ export function TextEditor({
       });
     } catch (error: any) {
       console.error('Analysis failed:', error);
+
+      // Check if it's a mode mismatch error
+      if (error.response?.status === 400 && error.response?.data?.error === "Mode mismatch") {
+        toast({
+          variant: "destructive",
+          title: "Wrong Analysis Mode",
+          description: (
+            <div className="space-y-2">
+              <p>{error.response.data.message}</p>
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => setMode(error.response.data.suggestedMode)}
+              >
+                Switch to {error.response.data.suggestedMode} mode
+              </Button>
+            </div>
+          ),
+        });
+        return;
+      }
+
       toast({
         variant: "destructive",
         title: "Analysis Failed",
@@ -155,14 +179,14 @@ export function TextEditor({
           </div>
         </div>
         <div className="p-4">
-          <EditorContent 
-            editor={editor} 
+          <EditorContent
+            editor={editor}
             className="focus-within:outline-none w-full"
           />
         </div>
       </div>
       <div className="flex justify-end">
-        <Button 
+        <Button
           onClick={analyze}
           disabled={analyzing || !editor?.getText().trim() || wordCount > 10000}
           className="w-[140px]"
