@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TextEditor } from '@/components/editor/text-editor';
 import { SuggestionsPanel } from '@/components/editor/suggestions-panel';
-import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
+import { type AnalysisResult, type AnalysisMode, type Document } from '@shared/schema';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
@@ -19,7 +19,7 @@ export default function Home() {
   const documentId = location.startsWith('/documents/') ? parseInt(location.split('/')[2]) : undefined;
 
   // Fetch document if we have an ID
-  const { data: document, isLoading, error } = useQuery({
+  const { data: document, isLoading, error } = useQuery<Document>({
     queryKey: ['/api/documents', documentId],
     enabled: !!documentId,
   });
@@ -28,7 +28,7 @@ export default function Home() {
   useEffect(() => {
     if (document) {
       setContent(document.content);
-      setHtmlContent(document.htmlContent || '');
+      setHtmlContent(document.htmlContent);
     }
   }, [document]);
 
