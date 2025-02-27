@@ -10,6 +10,7 @@ import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useRouter } from 'wouter';
 
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
@@ -39,6 +40,7 @@ export function TextEditor({
   const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useRouter();
 
   const saveMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; htmlContent: string }) => {
@@ -57,6 +59,11 @@ export function TextEditor({
         description: "Your document has been saved successfully.",
         className: "bg-green-100 border-green-500",
       });
+
+      // Navigate to the document page after saving
+      if (!documentId) {
+        navigate(`/documents/${savedDoc.id}`);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -94,18 +101,12 @@ export function TextEditor({
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       if (htmlContent && editor.getHTML() !== htmlContent) {
-        const { from, to } = editor.state.selection;
-        const scrollPos = window.scrollY;
-
         editor.commands.setContent(htmlContent);
-
-        if (from <= editor.getText().length && to <= editor.getText().length) {
-          editor.commands.setTextSelection({ from, to });
-          window.scrollTo(0, scrollPos);
-        }
+      } else if (content && editor.getText() !== content) {
+        editor.commands.setContent(content);
       }
     }
-  }, [htmlContent, editor]);
+  }, [htmlContent, content, editor]);
 
   const handleSave = async () => {
     if (!editor) return;
@@ -209,7 +210,7 @@ export function TextEditor({
           className: "bg-green-100 border-green-500",
           duration: 7000,
         });
-      }, 100); 
+      }, 100);
 
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
@@ -231,9 +232,9 @@ export function TextEditor({
       <div className="rounded-lg border bg-card w-full">
         <div className="border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="text-muted-foreground"
               onClick={handleSave}
               disabled={saving}
