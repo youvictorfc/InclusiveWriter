@@ -18,18 +18,6 @@ declare global {
   }
 }
 
-// Configure nodemailer but don't fail if credentials aren't available
-const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD ? 
-  nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  }) : null;
-
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
@@ -43,6 +31,18 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Configure nodemailer but don't fail if credentials aren't available
+const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD ?
+  nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  }) : null;
+
 async function generateVerificationToken(): Promise<string> {
   return randomBytes(32).toString("hex");
 }
@@ -50,7 +50,7 @@ async function generateVerificationToken(): Promise<string> {
 async function sendVerificationEmail(email: string, token: string) {
   const verificationUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
 
-  if (transporter) { //Only send if transporter is configured.
+  if (transporter) {
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -66,8 +66,9 @@ async function sendVerificationEmail(email: string, token: string) {
 }
 
 export function setupAuth(app: Express) {
+  // Configure session before passport
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'default-secret-key',
     resave: false,
     saveUninitialized: false,
     store: new MemoryStore({
@@ -91,10 +92,6 @@ export function setupAuth(app: Express) {
         if (!user || !(await comparePasswords(password, user.passwordHash))) {
           return done(null, false, { message: "Invalid username or password" });
         }
-        // Temporarily disable verification check
-        // if (!user.isVerified) {
-        //   return done(null, false, { message: "Please verify your email first" });
-        // }
         return done(null, user);
       } catch (error) {
         return done(error);
@@ -115,6 +112,7 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Register auth routes within setupAuth function
   app.post("/api/register", async (req, res) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
@@ -149,32 +147,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.get("/api/verify-email", async (req, res) => {
-    try {
-      const { token } = req.query;
-
-      if (!token || typeof token !== 'string') {
-        return res.status(400).json({ message: "Invalid verification token" });
-      }
-
-      const user = await storage.getUserByVerificationToken(token);
-
-      if (!user) {
-        return res.status(400).json({ message: "Invalid verification token" });
-      }
-
-      if (user.verificationExpires && new Date(user.verificationExpires) < new Date()) {
-        return res.status(400).json({ message: "Verification token has expired" });
-      }
-
-      await storage.verifyUser(user.id);
-
-      return res.json({ message: "Email verified successfully. You can now log in." });
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
-    }
-  });
-
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: Error, user: SelectUser) => {
       if (err) return next(err);
@@ -199,5 +171,31 @@ export function setupAuth(app: Express) {
       return res.sendStatus(401);
     }
     res.json(req.user);
+  });
+
+  app.get("/api/verify-email", async (req, res) => {
+    try {
+      const { token } = req.query;
+
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+
+      const user = await storage.getUserByVerificationToken(token);
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+
+      if (user.verificationExpires && new Date(user.verificationExpires) < new Date()) {
+        return res.status(400).json({ message: "Verification token has expired" });
+      }
+
+      await storage.verifyUser(user.id);
+
+      return res.json({ message: "Email verified successfully. You can now log in." });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
   });
 }
