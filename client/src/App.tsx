@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
@@ -9,9 +9,9 @@ import AuthPage from "@/pages/auth";
 import Documents from "@/pages/documents";
 import DocumentViewer from "@/pages/document-viewer";
 import { ProtectedRoute } from "@/lib/protected-route";
-import { 
-  Sidebar, 
-  SidebarContent, 
+import {
+  Sidebar,
+  SidebarContent,
   SidebarHeader,
   SidebarProvider,
   SidebarMenu,
@@ -29,9 +29,9 @@ function MainNav() {
     <SidebarMenu>
       <SidebarMenuItem>
         <Link href="/">
-          <SidebarMenuButton 
-            asChild 
-            isActive={location === "/"} 
+          <SidebarMenuButton
+            asChild
+            isActive={location === "/"}
             tooltip="Home"
           >
             <a className="flex items-center">
@@ -43,9 +43,9 @@ function MainNav() {
       </SidebarMenuItem>
       <SidebarMenuItem>
         <Link href="/documents">
-          <SidebarMenuButton 
-            asChild 
-            isActive={location.startsWith("/documents")} 
+          <SidebarMenuButton
+            asChild
+            isActive={location.startsWith("/documents")}
             tooltip="Documents"
           >
             <a className="flex items-center">
@@ -59,7 +59,7 @@ function MainNav() {
   );
 }
 
-function Layout({ children }: { children: React.ReactNode }) {
+function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="flex h-screen">
@@ -85,37 +85,29 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute 
-        path="/" 
+      <ProtectedRoute
+        path="/"
         component={() => (
-          <Layout>
+          <AppLayout>
             <Home />
-          </Layout>
-        )} 
+          </AppLayout>
+        )}
       />
-      <ProtectedRoute 
-        path="/documents" 
+      <ProtectedRoute
+        path="/documents"
         component={() => (
-          <Layout>
+          <AppLayout>
             <Documents />
-          </Layout>
-        )} 
+          </AppLayout>
+        )}
       />
-      <ProtectedRoute 
-        path="/documents/:id" 
+      <ProtectedRoute
+        path="/documents/:id"
         component={({ params }) => (
-          <Layout>
+          <AppLayout>
             <DocumentViewer params={params} />
-          </Layout>
-        )} 
-      />
-      <ProtectedRoute 
-        path="/documents/:id/edit" 
-        component={({ params }) => (
-          <Layout>
-            <Home />
-          </Layout>
-        )} 
+          </AppLayout>
+        )}
       />
       <Route component={NotFound} />
     </Switch>
