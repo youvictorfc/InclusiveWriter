@@ -17,13 +17,15 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  SidebarRail
+  SidebarRail,
+  useSidebar
 } from "@/components/ui/sidebar";
 import { Home as HomeIcon, FileText } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 function MainNav() {
   const [location] = useLocation();
+  const { state } = useSidebar();
 
   return (
     <SidebarMenu>
@@ -35,8 +37,10 @@ function MainNav() {
             tooltip="Home"
           >
             <a className="flex items-center">
-              <HomeIcon className="mr-2" />
-              <span>Home</span>
+              <HomeIcon className="h-4 w-4" />
+              <span className={`ml-2 transition-opacity duration-300 ${state === 'collapsed' ? 'opacity-0' : 'opacity-100'}`}>
+                Home
+              </span>
             </a>
           </SidebarMenuButton>
         </Link>
@@ -49,8 +53,10 @@ function MainNav() {
             tooltip="Documents"
           >
             <a className="flex items-center">
-              <FileText className="mr-2" />
-              <span>Documents</span>
+              <FileText className="h-4 w-4" />
+              <span className={`ml-2 transition-opacity duration-300 ${state === 'collapsed' ? 'opacity-0' : 'opacity-100'}`}>
+                Documents
+              </span>
             </a>
           </SidebarMenuButton>
         </Link>
@@ -60,6 +66,8 @@ function MainNav() {
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
+  const { state } = useSidebar();
+
   return (
     <SidebarProvider defaultOpen={false}>
       <Sidebar 
@@ -67,7 +75,9 @@ function Layout({ children }: { children: React.ReactNode }) {
         className="group/sidebar transition-all duration-300 ease-in-out hover:w-64"
       >
         <SidebarHeader className="border-b">
-          <h2 className="px-2 text-lg font-semibold tracking-tight">NOMW</h2>
+          <h2 className={`px-2 text-lg font-semibold tracking-tight transition-opacity duration-300 ${state === 'collapsed' ? 'opacity-0' : 'opacity-100'}`}>
+            NOMW
+          </h2>
         </SidebarHeader>
         <SidebarContent>
           <MainNav />
