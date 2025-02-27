@@ -1,7 +1,6 @@
 import { pgTable, text, serial, jsonb, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { validateEmail } from "zod-email-validation";
 
 export const analyses = pgTable("analyses", {
   id: serial("id").primaryKey(),
@@ -38,7 +37,6 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
 export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 
-
 // Update users table with verification fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -63,9 +61,7 @@ export const insertUserSchema = createInsertSchema(users)
   })
   .extend({
     password: z.string().min(6, "Password must be at least 6 characters"),
-    email: z.string().email().refine(validateEmail, {
-      message: "Please enter a valid email address",
-    }),
+    email: z.string().email("Please enter a valid email address"),
   });
 
 export type User = typeof users.$inferSelect;
