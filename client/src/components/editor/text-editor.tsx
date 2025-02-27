@@ -60,7 +60,7 @@ export function TextEditor({
         className: "bg-green-100 border-green-500",
       });
 
-      // Navigate to the document page after saving
+      // Only navigate if this is a new document
       if (!documentId) {
         setLocation(`/documents/${savedDoc.id}`);
       }
