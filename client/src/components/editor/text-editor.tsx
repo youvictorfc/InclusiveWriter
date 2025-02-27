@@ -99,7 +99,7 @@ export function TextEditor({
     setAnalyzing(true);
     try {
       const result = await analyzeText(currentContent, mode);
-      console.log('Analysis result:', result); 
+      console.log('Analysis result:', result); // Debug log
 
       editor.commands.unsetHighlight();
 
@@ -115,9 +115,14 @@ export function TextEditor({
         }
       });
 
+      onHtmlContentChange(editor.getHTML());
+      onAnalysis(result.analysis);
+
+      // First show the mode suggestion if available
       if (result.modeSuggestion) {
         console.log('Showing mode suggestion:', result.modeSuggestion); 
         toast({
+          id: "mode-suggestion",
           variant: "default",
           className: "bg-yellow-100 border-yellow-500",
           title: "Mode Suggestion",
@@ -134,14 +139,15 @@ export function TextEditor({
               </Button>
             </div>
           ),
-          duration: 7000, 
+          duration: 7000,
         });
       }
 
-      // Show analysis results immediately after mode suggestion
+      // Show analysis results
       toast({
+        id: "analysis-complete",
         variant: "default",
-        className: "bg-green-100 border-green-500",
+        className: "bg-green-100 border-green-500 mt-2", // Add margin top
         title: "Analysis Complete",
         description: (
           <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
@@ -151,8 +157,6 @@ export function TextEditor({
         duration: 7000,
       });
 
-      onHtmlContentChange(editor.getHTML());
-      onAnalysis(result.analysis);
     } catch (error: any) {
       console.error('Analysis error:', error);
       toast({
