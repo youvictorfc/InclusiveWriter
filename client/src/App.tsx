@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
 import Documents from "@/pages/documents";
+import DocumentViewer from "@/pages/document-viewer";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { 
   Sidebar, 
@@ -102,6 +103,14 @@ function Router() {
       />
       <ProtectedRoute 
         path="/documents/:id" 
+        component={(params) => (
+          <Layout>
+            <DocumentViewer params={params} />
+          </Layout>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/documents/:id/edit" 
         component={() => (
           <Layout>
             <Home />
