@@ -55,7 +55,12 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const document = await storage.getDocument(parseInt(req.params.id));
+      const documentId = parseInt(req.params.id);
+      if (isNaN(documentId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+
+      const document = await storage.getDocument(documentId);
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
@@ -64,6 +69,7 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Access denied" });
       }
 
+      console.log('Fetched document:', document); // Add logging
       res.json(document);
     } catch (error) {
       console.error('Document fetch error:', error);

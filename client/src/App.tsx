@@ -44,7 +44,7 @@ function MainNav() {
         <Link href="/documents">
           <SidebarMenuButton 
             asChild 
-            isActive={location === "/documents"} 
+            isActive={location.startsWith("/documents")} 
             tooltip="Documents"
           >
             <a className="flex items-center">

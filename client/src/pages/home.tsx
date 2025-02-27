@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
 import { useQuery } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -27,10 +28,27 @@ export default function Home() {
   // Set content from document when it loads
   useEffect(() => {
     if (document) {
+      console.log('Loading document content:', document); // Add logging
       setContent(document.content);
       setHtmlContent(document.htmlContent);
     }
   }, [document]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500">
+        Error loading document. Please try again.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,23 +101,17 @@ export default function Home() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="editor" className="space-y-4">
-                {isLoading ? (
-                  <div className="text-center text-muted-foreground">Loading document...</div>
-                ) : error ? (
-                  <div className="text-center text-red-500">Error loading document. Please try again.</div>
-                ) : (
-                  <TextEditor
-                    onAnalysis={setAnalysis}
-                    mode={mode}
-                    content={content}
-                    htmlContent={htmlContent}
-                    onContentChange={setContent}
-                    onHtmlContentChange={setHtmlContent}
-                    onShowAnalysis={() => setActiveTab('analysis')}
-                    setMode={setMode}
-                    documentId={documentId}
-                  />
-                )}
+                <TextEditor
+                  onAnalysis={setAnalysis}
+                  mode={mode}
+                  content={content}
+                  htmlContent={htmlContent}
+                  onContentChange={setContent}
+                  onHtmlContentChange={setHtmlContent}
+                  onShowAnalysis={() => setActiveTab('analysis')}
+                  setMode={setMode}
+                  documentId={documentId}
+                />
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">
                 <SuggestionsPanel analysis={analysis} />
