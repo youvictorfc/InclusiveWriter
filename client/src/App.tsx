@@ -17,9 +17,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home as HomeIcon, FileText, Menu } from "lucide-react";
+import { Home as HomeIcon, FileText } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 function MainNav() {
@@ -61,21 +60,18 @@ function MainNav() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider defaultCollapsed={false}>
+    <SidebarProvider defaultCollapsed={true}>
       <div className="flex h-screen">
-        <Sidebar className="transition-all duration-300">
-          <SidebarHeader className="border-b flex items-center justify-between px-2 py-2">
-            <h2 className="text-lg font-semibold tracking-tight">NOMW</h2>
-            <SidebarTrigger asChild>
-              <button className="p-2 hover:bg-accent rounded-md">
-                <Menu className="h-4 w-4" />
-              </button>
-            </SidebarTrigger>
-          </SidebarHeader>
-          <SidebarContent>
-            <MainNav />
-          </SidebarContent>
-        </Sidebar>
+        <div className="group">
+          <Sidebar className="transition-all duration-300 group-hover:w-64 w-16">
+            <SidebarHeader className="border-b flex items-center px-2 py-2">
+              <h2 className="text-lg font-semibold tracking-tight opacity-0 group-hover:opacity-100 transition-opacity duration-300">NOMW</h2>
+            </SidebarHeader>
+            <SidebarContent>
+              <MainNav />
+            </SidebarContent>
+          </Sidebar>
+        </div>
         <SidebarInset className="flex-1 overflow-auto">
           {children}
         </SidebarInset>
