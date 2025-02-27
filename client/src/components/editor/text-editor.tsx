@@ -10,7 +10,7 @@ import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { useRouter } from 'wouter';
+import { useLocation } from "wouter";
 
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
@@ -40,7 +40,7 @@ export function TextEditor({
   const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, navigate] = useRouter();
+  const [, setLocation] = useLocation();
 
   const saveMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; htmlContent: string }) => {
@@ -62,7 +62,7 @@ export function TextEditor({
 
       // Navigate to the document page after saving
       if (!documentId) {
-        navigate(`/documents/${savedDoc.id}`);
+        setLocation(`/documents/${savedDoc.id}`);
       }
     },
     onError: (error: Error) => {
