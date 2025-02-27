@@ -15,7 +15,14 @@ export function Toaster() {
     <ToastProvider swipeDirection="right">
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
-          <Toast key={id} {...props}>
+          <Toast 
+            key={id} 
+            {...props}
+            // Ensure mode suggestion appears above analysis complete
+            style={{
+              zIndex: id === "mode-suggestion" ? 51 : 50
+            }}
+          >
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (
@@ -27,7 +34,7 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport className="gap-2" /> {/* Add gap between toasts */}
+      <ToastViewport className="gap-2" />
     </ToastProvider>
   )
 }

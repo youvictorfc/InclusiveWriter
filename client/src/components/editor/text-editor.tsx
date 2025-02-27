@@ -99,7 +99,7 @@ export function TextEditor({
     setAnalyzing(true);
     try {
       const result = await analyzeText(currentContent, mode);
-      console.log('Analysis result:', result); // Debug log
+      console.log('Analysis result:', result);
 
       editor.commands.unsetHighlight();
 
@@ -118,14 +118,13 @@ export function TextEditor({
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
 
-      // First show the mode suggestion if available
+      // Show both toasts simultaneously
       if (result.modeSuggestion) {
-        console.log('Showing mode suggestion:', result.modeSuggestion); 
+        console.log('Showing mode suggestion:', result.modeSuggestion);
         toast({
           id: "mode-suggestion",
-          variant: "default",
-          className: "bg-yellow-100 border-yellow-500",
           title: "Mode Suggestion",
+          className: "bg-yellow-100 border-yellow-500",
           description: (
             <div className="space-y-2">
               <p>{result.modeSuggestion.explanation}</p>
@@ -143,12 +142,10 @@ export function TextEditor({
         });
       }
 
-      // Show analysis results
       toast({
         id: "analysis-complete",
-        variant: "default",
-        className: "bg-green-100 border-green-500 mt-2", // Add margin top
         title: "Analysis Complete",
+        className: "bg-green-100 border-green-500",
         description: (
           <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
             Found {result.analysis.issues.length} issues to review. Click to view analysis.
