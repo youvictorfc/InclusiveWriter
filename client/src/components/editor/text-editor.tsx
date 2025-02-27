@@ -77,14 +77,12 @@ export function TextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Highlight.configure({
-        multicolor: true,
-      }),
+      Highlight.configure({ multicolor: true }),
     ],
     content: htmlContent || content || '',
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-lg focus:outline-none leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
+        class: 'prose dark:prose-invert prose-lg focus:outline-none leading-relaxed min-h-[400px] placeholder:text-muted-foreground',
         placeholder: 'Enter your text here to analyze (10,000 words max)...'
       },
     },
@@ -108,117 +106,118 @@ export function TextEditor({
     }
   }, [htmlContent, content, editor]);
 
-
   return (
-    <div className="w-full max-w-5xl mx-auto px-4">
-      <div className="space-y-4">
-        <Card className="shadow-lg">
-          <div className="border-b px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => saveMutation.mutate({
-                  title: editor?.getText().split('\n')[0].slice(0, 50) || 'Untitled Document',
-                  content: editor?.getText() || '',
-                  htmlContent: editor?.getHTML() || '',
-                })}
-                disabled={saving || !editor?.getText().trim()}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </>
-                )}
-              </Button>
+    <div className="min-h-screen bg-background py-8">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="space-y-6">
+          <Card className="shadow-lg overflow-hidden">
+            <div className="border-b px-6 py-3 flex items-center justify-between bg-card">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => saveMutation.mutate({
+                    title: editor?.getText().split('\n')[0].slice(0, 50) || 'Untitled Document',
+                    content: editor?.getText() || '',
+                    htmlContent: editor?.getHTML() || '',
+                  })}
+                  disabled={saving || !editor?.getText().trim()}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {wordCount} / 10,000 words
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {wordCount} / 10,000 words
+            <div className="px-8 py-6">
+              <EditorContent
+                editor={editor}
+                className="focus-within:outline-none w-full"
+              />
             </div>
-          </div>
-          <div className="px-6 py-4">
-            <EditorContent
-              editor={editor}
-              className="focus-within:outline-none w-full"
-            />
-          </div>
-        </Card>
-        <div className="flex justify-end">
-          <Button
-            onClick={async () => {
-              if (!editor?.getText().trim()) {
-                toast({
-                  title: "Empty Content",
-                  description: "Please enter some text to analyze.",
-                  className: "bg-red-100 border-red-500",
-                });
-                return;
-              }
-
-              if (wordCount > 10000) {
-                toast({
-                  title: "Content Too Long",
-                  description: "Please limit your text to 10,000 words.",
-                  className: "bg-red-100 border-red-500",
-                });
-                return;
-              }
-
-              setAnalyzing(true);
-              try {
-                const result = await analyzeText(editor.getText(), mode);
-                onAnalysis(result.analysis);
-                onShowAnalysis();
-
-                if (result.modeSuggestion) {
+          </Card>
+          <div className="flex justify-end">
+            <Button
+              onClick={async () => {
+                if (!editor?.getText().trim()) {
                   toast({
-                    title: "Mode Suggestion",
-                    description: (
-                      <div className="space-y-2">
-                        <p>{result.modeSuggestion.explanation}</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full mt-2 bg-white hover:bg-yellow-50"
-                          onClick={() => setMode(result.modeSuggestion!.suggestedMode)}
-                        >
-                          Switch to {result.modeSuggestion.suggestedMode} mode
-                        </Button>
-                      </div>
-                    ),
-                    className: "bg-yellow-100 border-yellow-500",
-                    duration: 7000,
+                    title: "Empty Content",
+                    description: "Please enter some text to analyze.",
+                    className: "bg-red-100 border-red-500",
                   });
+                  return;
                 }
-              } catch (error: any) {
-                toast({
-                  title: "Analysis Failed",
-                  description: error.message || "Failed to analyze text. Please try again.",
-                  className: "bg-red-100 border-red-500",
-                });
-              } finally {
-                setAnalyzing(false);
-              }
-            }}
-            disabled={analyzing || !editor?.getText().trim() || wordCount > 10000}
-            className="w-[140px]"
-          >
-            {analyzing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              'Analyze Text'
-            )}
-          </Button>
+
+                if (wordCount > 10000) {
+                  toast({
+                    title: "Content Too Long",
+                    description: "Please limit your text to 10,000 words.",
+                    className: "bg-red-100 border-red-500",
+                  });
+                  return;
+                }
+
+                setAnalyzing(true);
+                try {
+                  const result = await analyzeText(editor.getText(), mode);
+                  onAnalysis(result.analysis);
+                  onShowAnalysis();
+
+                  if (result.modeSuggestion) {
+                    toast({
+                      title: "Mode Suggestion",
+                      description: (
+                        <div className="space-y-2">
+                          <p>{result.modeSuggestion.explanation}</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2 bg-white hover:bg-yellow-50"
+                            onClick={() => setMode(result.modeSuggestion!.suggestedMode)}
+                          >
+                            Switch to {result.modeSuggestion.suggestedMode} mode
+                          </Button>
+                        </div>
+                      ),
+                      className: "bg-yellow-100 border-yellow-500",
+                      duration: 7000,
+                    });
+                  }
+                } catch (error: any) {
+                  toast({
+                    title: "Analysis Failed",
+                    description: error.message || "Failed to analyze text. Please try again.",
+                    className: "bg-red-100 border-red-500",
+                  });
+                } finally {
+                  setAnalyzing(false);
+                }
+              }}
+              disabled={analyzing || !editor?.getText().trim() || wordCount > 10000}
+              className="w-[140px]"
+            >
+              {analyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                'Analyze Text'
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
