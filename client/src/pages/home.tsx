@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TextEditor } from '@/components/editor/text-editor';
 import { SuggestionsPanel } from '@/components/editor/suggestions-panel';
 import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
@@ -19,16 +19,16 @@ export default function Home() {
   const documentId = location.startsWith('/documents/') ? parseInt(location.split('/')[2]) : undefined;
 
   // Fetch document if we have an ID
-  const { data: document } = useQuery({
+  const { data: document, isLoading, error } = useQuery({
     queryKey: ['/api/documents', documentId],
     enabled: !!documentId,
   });
 
   // Set content from document when it loads
-  useState(() => {
+  useEffect(() => {
     if (document) {
       setContent(document.content);
-      setHtmlContent(document.htmlContent);
+      setHtmlContent(document.htmlContent || '');
     }
   }, [document]);
 
@@ -83,17 +83,23 @@ export default function Home() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="editor" className="space-y-4">
-                <TextEditor
-                  onAnalysis={setAnalysis}
-                  mode={mode}
-                  content={content}
-                  htmlContent={htmlContent}
-                  onContentChange={setContent}
-                  onHtmlContentChange={setHtmlContent}
-                  onShowAnalysis={() => setActiveTab('analysis')}
-                  setMode={setMode}
-                  documentId={documentId}
-                />
+                {isLoading ? (
+                  <div className="text-center text-muted-foreground">Loading document...</div>
+                ) : error ? (
+                  <div className="text-center text-red-500">Error loading document. Please try again.</div>
+                ) : (
+                  <TextEditor
+                    onAnalysis={setAnalysis}
+                    mode={mode}
+                    content={content}
+                    htmlContent={htmlContent}
+                    onContentChange={setContent}
+                    onHtmlContentChange={setHtmlContent}
+                    onShowAnalysis={() => setActiveTab('analysis')}
+                    setMode={setMode}
+                    documentId={documentId}
+                  />
+                )}
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">
                 <SuggestionsPanel analysis={analysis} />
