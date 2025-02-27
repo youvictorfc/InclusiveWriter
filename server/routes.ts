@@ -39,7 +39,18 @@ export async function registerRoutes(app: Express) {
       let systemPrompt = '';
       switch (mode) {
         case 'language':
-          systemPrompt = `You are an expert at identifying non-inclusive language. Analyze the text and identify specific instances of non-inclusive language.
+          systemPrompt = `You are an expert at identifying non-inclusive language. Follow these specific guidelines:
+            1. Check for bias-free language and replace biased or exclusionary terms
+            2. Ensure gender-neutral language usage
+            3. Check for accessibility issues in content
+            4. Review for ethnic and cultural sensitivity
+            5. Ensure disability-aware language
+            6. Verify LGBTQ+ inclusive language
+            7. Check proper use of inclusive pronouns
+            8. Encourage diverse representation
+            9. Identify cultural appropriation issues
+            10. Provide real-time, actionable feedback
+
             For each issue found, provide:
             1. The exact problematic text
             2. A suggested alternative
@@ -47,7 +58,22 @@ export async function registerRoutes(app: Express) {
             4. The severity level (low, medium, or high)`;
           break;
         case 'policy':
-          systemPrompt = `You are an expert at analyzing organizational policies for inclusivity and fairness. Review the policy text and identify areas that could be improved.
+          systemPrompt = `You are an expert at analyzing organizational policies for inclusivity and fairness. Follow these specific guidelines:
+            1. Check that language makes no stereotypes about gender, sexuality, race, ethnicity, religion, disability, age
+            2. Verify policy reflects diverse workforce including remote, casual, contractors, and flex workers
+            3. Ensure no assumptions about office-based work
+            4. Account for assistive technologies usage
+            5. Avoid assumptions about hearing, vision, or mobility
+            6. Use language without assumptions about intellect or education
+            7. Implement human-centered language
+            8. Check for clear reasonable adjustments
+            9. Verify support resources are mentioned
+            10. Ensure clear dispute resolution guidelines
+            11. Look for case studies in complex concepts
+            12. Verify language is clear, concise, and not open to interpretation
+            13. Ensure policies are understandable at all organizational levels
+            14. Check for genuine inclusion of all backgrounds
+
             For each issue found, provide:
             1. The exact policy text that needs attention
             2. A suggested revision
@@ -55,7 +81,20 @@ export async function registerRoutes(app: Express) {
             4. The severity level (low, medium, or high) based on potential impact`;
           break;
         case 'recruitment':
-          systemPrompt = `You are an expert at analyzing recruitment and job-related content for bias and inclusivity. Review the text and identify potential barriers or biases.
+          systemPrompt = `You are an expert at analyzing recruitment and job-related content for bias and inclusivity. Follow these specific guidelines:
+            1. Use gender-neutral job titles and language
+            2. Focus on required skills and qualifications, not personal characteristics
+            3. Avoid terms like "rock star" or "ninja" that carry bias
+            4. Check for clear commitment to diversity and inclusion
+            5. Ensure language is accessible and easy to understand
+            6. Include appropriate equal opportunity statements
+            7. Verify accommodation information for candidates with disabilities
+            8. Remove age-related qualifications or expectations
+            9. Include work-life balance information
+            10. Maintain cultural sensitivity
+            11. Highlight inclusive benefits
+            12. Use encouraging language for diverse applicants
+
             For each issue found, provide:
             1. The exact text that may limit candidate diversity
             2. A suggested alternative
@@ -128,7 +167,7 @@ export async function registerRoutes(app: Express) {
       if (error instanceof OpenAI.APIError) {
         if (error.status === 429) {
           return res.status(429).json({
-            error: "OpenAI API rate limit reached. Please check your API key quota and try again later."
+            error: "OpenAI API rate limit reached. Please try again later."
           });
         }
         if (error.status === 401) {
