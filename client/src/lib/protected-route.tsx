@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
 
 type ComponentProps = {
-  params?: { [key: string]: string };
+  params: { [key: string]: string };
 };
 
 export function ProtectedRoute({
@@ -33,5 +33,5 @@ export function ProtectedRoute({
     );
   }
 
-  return <Route path={path}>{(params) => <Component params={params} />}</Route>;
+  return <Route path={path}>{(params) => <Component params={params as { [key: string]: string }} />}</Route>;
 }
