@@ -115,9 +115,6 @@ export function TextEditor({
         }
       });
 
-      onHtmlContentChange(editor.getHTML());
-      onAnalysis(result.analysis);
-
       if (result.modeSuggestion) {
         console.log('Showing mode suggestion:', result.modeSuggestion); 
         toast({
@@ -141,6 +138,7 @@ export function TextEditor({
         });
       }
 
+      // Always show analysis results after mode suggestion
       setTimeout(() => {
         toast({
           variant: "default",
@@ -151,9 +149,12 @@ export function TextEditor({
               Found {result.analysis.issues.length} issues to review. Click to view analysis.
             </div>
           ),
+          duration: 7000,
         });
-      }, result.modeSuggestion ? 500 : 0); 
+      }, result.modeSuggestion ? 1000 : 0); 
 
+      onHtmlContentChange(editor.getHTML());
+      onAnalysis(result.analysis);
     } catch (error: any) {
       console.error('Analysis error:', error);
       toast({
