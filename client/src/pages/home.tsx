@@ -4,7 +4,8 @@ import { SuggestionsPanel } from '@/components/editor/suggestions-panel';
 import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import { useQuery } from '@tanstack/react-query';
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -12,11 +13,24 @@ export default function Home() {
   const [content, setContent] = useState<string>('');
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [activeTab, setActiveTab] = useState('editor');
-  const { logoutMutation } = useAuth();
+  const [location] = useLocation();
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
-  };
+  // Extract document ID from location if we're editing an existing document
+  const documentId = location.startsWith('/documents/') ? parseInt(location.split('/')[2]) : undefined;
+
+  // Fetch document if we have an ID
+  const { data: document } = useQuery({
+    queryKey: ['/api/documents', documentId],
+    enabled: !!documentId,
+  });
+
+  // Set content from document when it loads
+  useState(() => {
+    if (document) {
+      setContent(document.content);
+      setHtmlContent(document.htmlContent);
+    }
+  }, [document]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,13 +66,6 @@ export default function Home() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              disabled={logoutMutation.isPending}
-            >
-              {logoutMutation.isPending ? "Logging out..." : "Logout"}
-            </button>
           </div>
         </div>
       </header>
@@ -85,6 +92,7 @@ export default function Home() {
                   onHtmlContentChange={setHtmlContent}
                   onShowAnalysis={() => setActiveTab('analysis')}
                   setMode={setMode}
+                  documentId={documentId}
                 />
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">

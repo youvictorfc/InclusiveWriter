@@ -17,6 +17,83 @@ export async function registerRoutes(app: Express) {
   // Set up authentication routes first
   setupAuth(app);
 
+  app.post("/api/documents", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const document = await storage.createDocument({
+        ...req.body,
+        userId: req.user.id,
+      });
+
+      res.json(document);
+    } catch (error) {
+      console.error('Document creation error:', error);
+      res.status(500).json({ error: 'Failed to create document' });
+    }
+  });
+
+  app.get("/api/documents", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const documents = await storage.getUserDocuments(req.user.id);
+      res.json(documents);
+    } catch (error) {
+      console.error('Document fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+  });
+
+  app.get("/api/documents/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const document = await storage.getDocument(parseInt(req.params.id));
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (document.userId !== req.user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      res.json(document);
+    } catch (error) {
+      console.error('Document fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch document' });
+    }
+  });
+
+  app.patch("/api/documents/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const document = await storage.getDocument(parseInt(req.params.id));
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (document.userId !== req.user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const updatedDocument = await storage.updateDocument(document.id, req.body);
+      res.json(updatedDocument);
+    } catch (error) {
+      console.error('Document update error:', error);
+      res.status(500).json({ error: 'Failed to update document' });
+    }
+  });
+
   app.post("/api/analyze", async (req, res) => {
     try {
       const { content, mode } = req.body;

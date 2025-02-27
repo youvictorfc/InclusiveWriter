@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import createMemoryStore from "memorystore";
+import nodemailer from "nodemailer";
 
 const MemoryStore = createMemoryStore(session);
 const scryptAsync = promisify(scrypt);
@@ -16,6 +17,17 @@ declare global {
     interface User extends SelectUser {}
   }
 }
+
+// Configure nodemailer with environment variables
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+});
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -28,6 +40,26 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+async function generateVerificationToken(): Promise<string> {
+  return randomBytes(32).toString("hex");
+}
+
+async function sendVerificationEmail(email: string, token: string) {
+  const verificationUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Verify your email for NOMW",
+    html: `
+      <h1>Welcome to NOMW!</h1>
+      <p>Please click the link below to verify your email address:</p>
+      <a href="${verificationUrl}">${verificationUrl}</a>
+      <p>This link will expire in 24 hours.</p>
+    `,
+  });
 }
 
 export function setupAuth(app: Express) {
@@ -55,6 +87,9 @@ export function setupAuth(app: Express) {
         const user = await storage.getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.passwordHash))) {
           return done(null, false, { message: "Invalid username or password" });
+        }
+        if (!user.isVerified) {
+          return done(null, false, { message: "Please verify your email first" });
         }
         return done(null, user);
       } catch (error) {
@@ -88,18 +123,57 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
+      const verificationToken = await generateVerificationToken();
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
       const passwordHash = await hashPassword(req.body.password);
       const user = await storage.createUser({
         ...req.body,
         passwordHash,
+        verificationToken,
+        verificationExpires,
+        isVerified: false
       });
 
-      req.login(user, (err) => {
-        if (err) throw err;
-        res.status(201).json(user);
+      try {
+        await sendVerificationEmail(req.body.email, verificationToken);
+      } catch (error) {
+        console.error('Failed to send verification email:', error);
+        return res.status(500).json({ message: "Failed to send verification email" });
+      }
+
+      res.status(201).json({ 
+        message: "Registration successful. Please check your email to verify your account.",
+        username: user.username
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/verify-email", async (req, res) => {
+    try {
+      const { token } = req.query;
+
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+
+      const user = await storage.getUserByVerificationToken(token);
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+
+      if (user.verificationExpires && new Date(user.verificationExpires) < new Date()) {
+        return res.status(400).json({ message: "Verification token has expired" });
+      }
+
+      await storage.verifyUser(user.id);
+
+      return res.json({ message: "Email verified successfully. You can now log in." });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
     }
   });
 

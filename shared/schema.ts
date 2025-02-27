@@ -1,6 +1,7 @@
-import { pgTable, text, serial, jsonb, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, jsonb, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { validateEmail } from "zod-email-validation";
 
 export const analyses = pgTable("analyses", {
   id: serial("id").primaryKey(),
@@ -16,20 +17,56 @@ export const insertAnalysisSchema = createInsertSchema(analyses).omit({
 export type Analysis = typeof analyses.$inferSelect;
 export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
 
-// Add users table
+// Add documents table after analyses table
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
+  userId: serial("user_id").references(() => users.id).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  htmlContent: text("html_content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDocumentSchema = createInsertSchema(documents).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+
+
+// Update users table with verification fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: varchar("username", { length: 50 }).notNull().unique(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isVerified: boolean("is_verified").default(false).notNull(),
+  verificationToken: text("verification_token"),
+  verificationExpires: timestamp("verification_expires"),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  passwordHash: true,
-  createdAt: true,
-});
+// Enhanced validation for registration
+export const insertUserSchema = createInsertSchema(users)
+  .omit({
+    id: true,
+    passwordHash: true,
+    createdAt: true,
+    isVerified: true,
+    verificationToken: true,
+    verificationExpires: true,
+  })
+  .extend({
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    email: z.string().email().refine(validateEmail, {
+      message: "Please enter a valid email address",
+    }),
+  });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;

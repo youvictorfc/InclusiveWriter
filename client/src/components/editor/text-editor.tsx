@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { analyzeText } from '@/lib/openai';
 import { useState, useEffect } from 'react';
-import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
+import { type AnalysisResult, type AnalysisMode, type Document } from '@shared/schema';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
@@ -18,6 +20,7 @@ interface TextEditorProps {
   onHtmlContentChange: (html: string) => void;
   onShowAnalysis: () => void;
   setMode: (mode: AnalysisMode) => void;
+  documentId?: number;
 }
 
 export function TextEditor({
@@ -29,10 +32,40 @@ export function TextEditor({
   onHtmlContentChange,
   onShowAnalysis,
   setMode,
+  documentId,
 }: TextEditorProps) {
   const [analyzing, setAnalyzing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: { title: string; content: string; htmlContent: string }) => {
+      if (documentId) {
+        const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
+        return response.json();
+      } else {
+        const response = await apiRequest('POST', '/api/documents', data);
+        return response.json();
+      }
+    },
+    onSuccess: (savedDoc: Document) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      toast({
+        title: "Document Saved",
+        description: "Your document has been saved successfully.",
+        className: "bg-green-100 border-green-500",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Save Failed",
+        description: error.message || "Failed to save document. Please try again.",
+        className: "bg-red-100 border-red-500",
+      });
+    },
+  });
 
   const editor = useEditor({
     extensions: [
@@ -74,6 +107,33 @@ export function TextEditor({
     }
   }, [htmlContent, editor]);
 
+  const handleSave = async () => {
+    if (!editor) return;
+
+    const text = editor.getText().trim();
+    if (!text) {
+      toast({
+        title: "Empty Content",
+        description: "Please enter some text before saving.",
+        className: "bg-red-100 border-red-500",
+      });
+      return;
+    }
+
+    const title = text.split('\n')[0].slice(0, 50) || 'Untitled Document';
+    setSaving(true);
+
+    try {
+      await saveMutation.mutateAsync({
+        title,
+        content: text,
+        htmlContent: editor.getHTML(),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const analyze = async () => {
     if (!editor) return;
 
@@ -82,7 +142,7 @@ export function TextEditor({
       toast({
         title: "Empty Content",
         description: "Please enter some text to analyze.",
-        variant: "destructive",
+        className: "bg-red-100 border-red-500",
       });
       return;
     }
@@ -91,7 +151,7 @@ export function TextEditor({
       toast({
         title: "Content Too Long",
         description: "Please limit your text to 10,000 words.",
-        variant: "destructive",
+        className: "bg-red-100 border-red-500",
       });
       return;
     }
@@ -115,7 +175,6 @@ export function TextEditor({
         }
       });
 
-      // Show both notifications immediately
       if (result.modeSuggestion) {
         toast({
           id: "mode-suggestion",
@@ -138,17 +197,19 @@ export function TextEditor({
         });
       }
 
-      toast({
-        id: "analysis-complete",
-        title: "Analysis Complete",
-        description: (
-          <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
-            Found {result.analysis.issues.length} issues to review. Click to view analysis.
-          </div>
-        ),
-        className: "bg-green-100 border-green-500",
-        duration: 7000,
-      });
+      setTimeout(() => {
+        toast({
+          id: "analysis-complete",
+          title: "Analysis Complete",
+          description: (
+            <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
+              Found {result.analysis.issues.length} issues to review. Click to view analysis.
+            </div>
+          ),
+          className: "bg-green-100 border-green-500",
+          duration: 7000,
+        });
+      }, 100); 
 
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
@@ -156,9 +217,9 @@ export function TextEditor({
     } catch (error: any) {
       console.error('Analysis error:', error);
       toast({
-        variant: "destructive",
         title: "Analysis Failed",
         description: error.message || "There was an error analyzing your text. Please try again.",
+        className: "bg-red-100 border-red-500",
       });
     } finally {
       setAnalyzing(false);
@@ -170,9 +231,24 @@ export function TextEditor({
       <div className="rounded-lg border bg-card w-full">
         <div className="border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="text-muted-foreground">
-              <Save className="h-4 w-4 mr-2" />
-              Save
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save
+                </>
+              )}
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
