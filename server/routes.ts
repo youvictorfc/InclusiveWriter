@@ -80,9 +80,10 @@ export async function registerRoutes(app: Express) {
       // If there's a mismatch between selected mode and detected content type
       if (mode !== detectedMode && contentType.confidence > 0.7) {
         modeSuggestion = {
-          suggestedMode: detectedMode,
+          suggestedMode: detectedMode as AnalysisMode,
           explanation: `It looks like you're analyzing ${contentType.type} content. ${contentType.explanation} You might get better results using the ${detectedMode} mode.`
         };
+        console.log('Created mode suggestion:', modeSuggestion); // Debug log
       }
 
       // Select the appropriate system prompt based on mode
@@ -184,7 +185,7 @@ export async function registerRoutes(app: Express) {
 
       const analysisResult = JSON.parse(response.choices[0].message.content);
 
-      // Create the analysis result with correct structure and include mode suggestion if any
+      // Create the analysis result with correct structure and include mode suggestion
       const result = {
         analysis: {
           issues: analysisResult.issues.map((issue: any) => ({
@@ -199,6 +200,7 @@ export async function registerRoutes(app: Express) {
         modeSuggestion
       };
 
+      console.log('Sending response with modeSuggestion:', !!modeSuggestion); // Debug log
       res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);

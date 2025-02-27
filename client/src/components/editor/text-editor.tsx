@@ -99,6 +99,7 @@ export function TextEditor({
     setAnalyzing(true);
     try {
       const result = await analyzeText(currentContent, mode);
+      console.log('Analysis result:', result); // Debug log
 
       // Clear existing highlights
       editor.commands.unsetHighlight();
@@ -122,6 +123,7 @@ export function TextEditor({
 
       // Show mode suggestion if available
       if (result.modeSuggestion) {
+        console.log('Showing mode suggestion:', result.modeSuggestion); // Debug log
         toast({
           variant: "default",
           className: "bg-yellow-100 border-yellow-500",
@@ -132,7 +134,7 @@ export function TextEditor({
               <Button
                 variant="outline"
                 className="w-full mt-2"
-                onClick={() => setMode(result.modeSuggestion.suggestedMode)}
+                onClick={() => setMode(result.modeSuggestion!.suggestedMode)}
               >
                 Switch to {result.modeSuggestion.suggestedMode} mode
               </Button>
@@ -154,7 +156,7 @@ export function TextEditor({
         ),
       });
     } catch (error: any) {
-      console.error('Analysis failed:', error);
+      console.error('Analysis error:', error);
       toast({
         variant: "destructive",
         title: "Analysis Failed",
