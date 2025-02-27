@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
 import Documents from "@/pages/documents";
+import Settings from "@/pages/settings";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { 
   Sidebar, 
@@ -19,7 +20,7 @@ import {
   SidebarInset,
   SidebarRail
 } from "@/components/ui/sidebar";
-import { Home as HomeIcon, FileText } from "lucide-react";
+import { Home as HomeIcon, FileText, Settings as SettingsIcon } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 function MainNav() {
@@ -51,6 +52,20 @@ function MainNav() {
             <a className="flex items-center">
               <FileText className="mr-2" />
               <span>Documents</span>
+            </a>
+          </SidebarMenuButton>
+        </Link>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <Link href="/settings">
+          <SidebarMenuButton 
+            asChild 
+            isActive={location === "/settings"} 
+            tooltip="Settings"
+          >
+            <a className="flex items-center">
+              <SettingsIcon className="mr-2" />
+              <span>Settings</span>
             </a>
           </SidebarMenuButton>
         </Link>
@@ -98,6 +113,14 @@ function Router() {
         component={() => (
           <Layout>
             <Documents />
+          </Layout>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/settings" 
+        component={() => (
+          <Layout>
+            <Settings />
           </Layout>
         )} 
       />

@@ -1,7 +1,7 @@
 import { type Analysis, type InsertAnalysis, type User, type InsertUser, analyses, users } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
-import { type Document, type InsertDocument, documents } from "@shared/schema"; // Added import for Document types
+import { type Document, type InsertDocument, documents } from "@shared/schema"; 
 
 export interface IStorage {
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
@@ -21,6 +21,7 @@ export interface IStorage {
   getDocument(id: number): Promise<Document | undefined>;
   getUserDocuments(userId: number): Promise<Document[]>;
   updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document>;
+  updateUserPassword(userId: number, newPasswordHash: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -105,6 +106,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(documents.id, id))
       .returning();
     return updatedDocument;
+  }
+
+  async updateUserPassword(userId: number, newPasswordHash: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        passwordHash: newPasswordHash,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 }
 
