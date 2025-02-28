@@ -126,30 +126,32 @@ export default function Documents() {
                                 <div className="flex items-start gap-2">
                                   <TooltipProvider>
                                     <Tooltip>
-                                      <TooltipTrigger>
-                                        {issue.severity === 'high' ? (
-                                          <AlertCircle className="h-4 w-4 text-red-500 mt-1" />
-                                        ) : issue.severity === 'medium' ? (
-                                          <AlertTriangle className="h-4 w-4 text-yellow-500 mt-1" />
-                                        ) : (
-                                          <Info className="h-4 w-4 text-blue-500 mt-1" />
-                                        )}
+                                      <TooltipTrigger asChild>
+                                        <div className="cursor-help">
+                                          {issue.severity === 'high' ? (
+                                            <AlertCircle className="h-4 w-4 text-red-500 mt-1" />
+                                          ) : issue.severity === 'medium' ? (
+                                            <AlertTriangle className="h-4 w-4 text-yellow-500 mt-1" />
+                                          ) : (
+                                            <Info className="h-4 w-4 text-blue-500 mt-1" />
+                                          )}
+                                        </div>
                                       </TooltipTrigger>
-                                      <TooltipContent>
+                                      <TooltipContent side="right" className="max-w-[300px]">
                                         {issue.severity === 'high' ? (
-                                          <p className="max-w-xs">
+                                          <p>
                                             Critical issue that requires immediate attention. 
                                             This type of issue should be addressed as soon as possible 
                                             to maintain document quality and inclusivity.
                                           </p>
                                         ) : issue.severity === 'medium' ? (
-                                          <p className="max-w-xs">
+                                          <p>
                                             Warning that should be addressed soon. 
                                             While not critical, this issue may impact the document's 
                                             effectiveness or inclusivity.
                                           </p>
                                         ) : (
-                                          <p className="max-w-xs">
+                                          <p>
                                             Suggestion for improvement. 
                                             Consider this feedback to enhance the document's clarity 
                                             and inclusivity.
