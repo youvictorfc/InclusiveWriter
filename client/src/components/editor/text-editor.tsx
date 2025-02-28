@@ -74,7 +74,7 @@ export function TextEditor({
         multicolor: true,
       }),
     ],
-    content: htmlContent || content || '',
+    content: '',
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
@@ -94,15 +94,8 @@ export function TextEditor({
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       if (htmlContent && editor.getHTML() !== htmlContent) {
-        const { from, to } = editor.state.selection;
-        const scrollPos = window.scrollY;
-
+        console.log('Updating editor content with:', htmlContent);
         editor.commands.setContent(htmlContent);
-
-        if (from <= editor.getText().length && to <= editor.getText().length) {
-          editor.commands.setTextSelection({ from, to });
-          window.scrollTo(0, scrollPos);
-        }
       }
     }
   }, [htmlContent, editor]);
