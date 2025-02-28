@@ -17,9 +17,11 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+type TabType = 'login' | 'register';
+
 export default function AuthPage() {
   // Move useState to the top, before other hooks
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [activeTab, setActiveTab] = useState<TabType>('login');
   const { user, loginMutation, registerMutation } = useAuth();
 
   const loginForm = useForm({
@@ -60,6 +62,10 @@ export default function AuthPage() {
     });
   });
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as TabType);
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl grid md:grid-cols-2 overflow-hidden">
@@ -69,7 +75,7 @@ export default function AuthPage() {
             Sign in to access the Inclusive Language Assistant
           </p>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
