@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
 import { useQuery } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -19,18 +20,27 @@ export default function Home() {
   const documentId = location.startsWith('/documents/') ? parseInt(location.split('/')[2]) : undefined;
 
   // Fetch document if we have an ID
-  const { data: document } = useQuery({
+  const { data: document, isLoading } = useQuery({
     queryKey: ['/api/documents', documentId],
     enabled: !!documentId,
   });
 
-  // Set content from document when it loads
+  // Update content when document loads
   useEffect(() => {
     if (document) {
-      setContent(document.content);
-      setHtmlContent(document.htmlContent);
+      console.log('Loading document:', document); // Debug log
+      setContent(document.content || '');
+      setHtmlContent(document.htmlContent || '');
     }
   }, [document]);
+
+  if (documentId && isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
