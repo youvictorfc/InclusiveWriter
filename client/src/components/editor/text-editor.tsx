@@ -74,7 +74,7 @@ export function TextEditor({
         multicolor: true,
       }),
     ],
-    content: '',
+    content: htmlContent, // Initialize with htmlContent prop
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
@@ -91,14 +91,13 @@ export function TextEditor({
     },
   });
 
+  // Update editor content when htmlContent prop changes
   useEffect(() => {
-    if (editor && !editor.isDestroyed) {
-      if (htmlContent && editor.getHTML() !== htmlContent) {
-        console.log('Updating editor content with:', htmlContent);
-        editor.commands.setContent(htmlContent);
-      }
+    if (editor && !editor.isDestroyed && htmlContent) {
+      console.log('Setting editor content:', { htmlContent });
+      editor.commands.setContent(htmlContent);
     }
-  }, [htmlContent, editor]);
+  }, [editor, htmlContent]);
 
   const handleSave = async () => {
     if (!editor) return;
