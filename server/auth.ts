@@ -90,12 +90,18 @@ export function setupAuth(app: Express) {
 
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists. Please choose a different username." });
+        return res.status(400).json({ 
+          message: "Username already exists. Please choose a different username.",
+          code: "USERNAME_EXISTS"
+        });
       }
 
       const existingEmail = await storage.getUserByEmail(req.body.email);
       if (existingEmail) {
-        return res.status(400).json({ message: "Email already registered. Please use a different email or try logging in." });
+        return res.status(400).json({ 
+          message: "Email already registered. Please use a different email or try logging in.",
+          code: "EMAIL_EXISTS"
+        });
       }
 
       const verificationToken = generateVerificationToken();
@@ -127,6 +133,7 @@ export function setupAuth(app: Express) {
         console.error('Failed to send verification email:', emailError);
         // Even if email fails, we want to let the user know their account was created
         return res.status(201).json({
+          success: true,
           message: "Account created but we couldn't send the verification email. Please try logging in later or contact support.",
           username: user.username,
           error: emailError.message
@@ -134,13 +141,15 @@ export function setupAuth(app: Express) {
       }
 
       res.status(201).json({ 
+        success: true,
         message: "Registration successful. Please check your email to verify your account.",
         username: user.username
       });
     } catch (error: any) {
       console.error('Registration error:', error);
       res.status(500).json({ 
-        message: "Registration failed",
+        success: false,
+        message: "Registration failed. Please try again later.",
         error: error.message 
       });
     }

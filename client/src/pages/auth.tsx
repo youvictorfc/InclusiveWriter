@@ -11,6 +11,7 @@ import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useState } from 'react';
+import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -20,9 +21,9 @@ const loginSchema = z.object({
 type TabType = 'login' | 'register';
 
 export default function AuthPage() {
-  // Move useState to the top, before other hooks
   const [activeTab, setActiveTab] = useState<TabType>('login');
   const { user, loginMutation, registerMutation } = useAuth();
+  const { toast } = useToast();
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
@@ -43,7 +44,6 @@ export default function AuthPage() {
     },
   });
 
-  // Handle user redirect after all hooks
   if (user) {
     return <Redirect to="/" />;
   }
@@ -57,7 +57,25 @@ export default function AuthPage() {
       onError: (error: any) => {
         if (error.message?.includes('Email already registered')) {
           setActiveTab('login');
+          toast({
+            title: "Account Already Exists",
+            description: "This email is already registered. Please log in instead.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Registration Failed",
+            description: error.message || "An error occurred during registration. Please try again.",
+            variant: "destructive"
+          });
         }
+      },
+      onSuccess: (response: any) => {
+        toast({
+          title: "Registration Successful",
+          description: "Please check your email for verification instructions.",
+          className: "bg-green-100 border-green-500"
+        });
       }
     });
   });
@@ -176,20 +194,6 @@ export default function AuthPage() {
                       'Create Account'
                     )}
                   </Button>
-                  {registerMutation.error && (
-                    <p className="text-sm text-destructive mt-2">
-                      {registerMutation.error.message}
-                      {registerMutation.error.message?.includes('Email already registered') && (
-                        <Button
-                          variant="link"
-                          className="px-1 text-primary"
-                          onClick={() => setActiveTab('login')}
-                        >
-                          Click here to login
-                        </Button>
-                      )}
-                    </p>
-                  )}
                 </form>
               </Form>
             </TabsContent>
