@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
+import { useState } from 'react';
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -18,6 +19,7 @@ const loginSchema = z.object({
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const [activeTab, setActiveTab] = useState('login');
 
   // Redirect to home if already logged in
   if (user) {
@@ -48,7 +50,13 @@ export default function AuthPage() {
   });
 
   const onRegister = registerForm.handleSubmit((data) => {
-    registerMutation.mutate(data);
+    registerMutation.mutate(data, {
+      onError: (error: any) => {
+        if (error.message?.includes('Email already registered')) {
+          setActiveTab('login');
+        }
+      }
+    });
   });
 
   return (
@@ -60,7 +68,7 @@ export default function AuthPage() {
             Sign in to access the Inclusive Language Assistant
           </p>
 
-          <Tabs defaultValue="login" className="mt-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
@@ -161,6 +169,20 @@ export default function AuthPage() {
                       'Create Account'
                     )}
                   </Button>
+                  {registerMutation.error && (
+                    <p className="text-sm text-destructive mt-2">
+                      {registerMutation.error.message}
+                      {registerMutation.error.message?.includes('Email already registered') && (
+                        <Button
+                          variant="link"
+                          className="px-1 text-primary"
+                          onClick={() => setActiveTab('login')}
+                        >
+                          Click here to login
+                        </Button>
+                      )}
+                    </p>
+                  )}
                 </form>
               </Form>
             </TabsContent>
