@@ -54,6 +54,28 @@ export default function Documents() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'high':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'medium':
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      default:
+        return <Info className="h-5 w-5 text-blue-500" />;
+    }
+  };
+
+  const getSeverityDescription = (severity: string) => {
+    switch (severity) {
+      case 'high':
+        return "Critical issue that requires immediate attention. This type of issue should be addressed as soon as possible to maintain document quality and inclusivity.";
+      case 'medium':
+        return "Warning that should be addressed soon. While not critical, this issue may impact the document's effectiveness or inclusivity.";
+      default:
+        return "Suggestion for improvement. Consider this feedback to enhance the document's clarity and inclusivity.";
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
@@ -109,7 +131,7 @@ export default function Documents() {
                       </Button>
                     </div>
 
-                    {expandedId === doc.id && (
+                    {expandedId === doc.id && doc.analysisResult && (
                       <div className="pt-4 border-t space-y-4">
                         <ScrollArea className="h-[400px] w-full rounded-md border p-4">
                           <div 
@@ -118,64 +140,38 @@ export default function Documents() {
                           />
                         </ScrollArea>
 
-                        {doc.analysisResult && (
-                          <div className="mt-4">
-                            <h4 className="font-medium mb-2">Analysis Results ({doc.analysisMode} mode)</h4>
-                            <div className="space-y-2">
-                              {doc.analysisResult.issues.map((issue: any, index: number) => (
-                                <Card key={index} className="p-3">
-                                  <div className="flex items-start gap-2">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div className="cursor-help hover:opacity-80">
-                                          {issue.severity === 'high' ? (
-                                            <AlertCircle className="h-4 w-4 text-red-500 mt-1" />
-                                          ) : issue.severity === 'medium' ? (
-                                            <AlertTriangle className="h-4 w-4 text-yellow-500 mt-1" />
-                                          ) : (
-                                            <Info className="h-4 w-4 text-blue-500 mt-1" />
-                                          )}
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent 
-                                        side="right" 
-                                        className="max-w-[300px] z-50 bg-white p-3 rounded-lg shadow-lg border"
-                                      >
-                                        {issue.severity === 'high' ? (
-                                          <p>
-                                            Critical issue that requires immediate attention. 
-                                            This type of issue should be addressed as soon as possible 
-                                            to maintain document quality and inclusivity.
-                                          </p>
-                                        ) : issue.severity === 'medium' ? (
-                                          <p>
-                                            Warning that should be addressed soon. 
-                                            While not critical, this issue may impact the document's 
-                                            effectiveness or inclusivity.
-                                          </p>
-                                        ) : (
-                                          <p>
-                                            Suggestion for improvement. 
-                                            Consider this feedback to enhance the document's clarity 
-                                            and inclusivity.
-                                          </p>
-                                        )}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                    <div>
-                                      <div className="font-medium text-sm">Found: "{issue.text}"</div>
-                                      <div className="text-sm text-muted-foreground">{issue.reason}</div>
-                                      <div className="text-sm mt-1">
-                                        <span className="font-medium">Suggestion: </span>
-                                        {issue.suggestion}
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-2">Analysis Results ({doc.analysisMode} mode)</h4>
+                          <div className="space-y-2">
+                            {doc.analysisResult.issues.map((issue: any, index: number) => (
+                              <Card key={index} className="p-3">
+                                <div className="flex items-start gap-3">
+                                  <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                      <div className="cursor-help hover:opacity-80">
+                                        {getSeverityIcon(issue.severity)}
                                       </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent 
+                                      side="right"
+                                      className="p-3 max-w-[300px] bg-white border shadow-lg rounded-lg z-50"
+                                    >
+                                      {getSeverityDescription(issue.severity)}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <div className="flex-1">
+                                    <div className="font-medium">Found: "{issue.text}"</div>
+                                    <div className="text-sm text-muted-foreground mt-1">{issue.reason}</div>
+                                    <div className="mt-2 text-sm">
+                                      <span className="font-medium">Suggestion: </span>
+                                      {issue.suggestion}
                                     </div>
                                   </div>
-                                </Card>
-                              ))}
-                            </div>
+                                </div>
+                              </Card>
+                            ))}
                           </div>
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
