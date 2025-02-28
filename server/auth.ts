@@ -61,8 +61,12 @@ export function setupAuth(app: Express) {
         if (!user || !(await comparePasswords(password, user.passwordHash))) {
           return done(null, false, { message: "Invalid username or password" });
         }
+        // Explicitly check for email verification before allowing login
         if (!user.isVerified) {
-          return done(null, false, { message: "Please verify your email first" });
+          return done(null, false, { 
+            message: "Please verify your email before logging in. Check your inbox for the verification link.",
+            code: "EMAIL_NOT_VERIFIED"
+          });
         }
         return done(null, user);
       } catch (error) {
@@ -82,6 +86,22 @@ export function setupAuth(app: Express) {
     } catch (error) {
       done(error);
     }
+  });
+
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err: Error, user: SelectUser, info: any) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ 
+          message: info.message || "Authentication failed",
+          code: info.code
+        });
+      }
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/register", async (req, res) => {
@@ -179,18 +199,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: Error, user: SelectUser) => {
-      if (err) return next(err);
-      if (!user) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.json(user);
-      });
-    })(req, res, next);
-  });
 
   app.post("/api/logout", (req, res) => {
     req.logout(() => {

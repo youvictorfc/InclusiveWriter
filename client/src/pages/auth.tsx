@@ -49,7 +49,15 @@ export default function AuthPage() {
   }
 
   const onLogin = loginForm.handleSubmit((data) => {
-    loginMutation.mutate(data);
+    loginMutation.mutate(data, {
+      onError: (error: any) => {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    });
   });
 
   const onRegister = registerForm.handleSubmit((data) => {
@@ -73,7 +81,7 @@ export default function AuthPage() {
       onSuccess: (response: any) => {
         toast({
           title: "Registration Successful",
-          description: "Please check your email for verification instructions.",
+          description: "Please check your email for verification instructions. You must verify your email before logging in.",
           className: "bg-green-100 border-green-500"
         });
       }
