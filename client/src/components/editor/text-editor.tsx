@@ -37,6 +37,7 @@ export function TextEditor({
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null); // Added state for analysis results
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -47,7 +48,7 @@ export function TextEditor({
         multicolor: true,
       }),
     ],
-    content: htmlContent || '<p></p>', // Initialize with HTML content or empty paragraph
+    content: htmlContent || '<p></p>',
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
@@ -78,7 +79,7 @@ export function TextEditor({
   }, [content, htmlContent, documentId]);
 
   const saveMutation = useMutation({
-    mutationFn: async (data: { title: string; content: string; htmlContent: string }) => {
+    mutationFn: async (data: { title: string; content: string; htmlContent: string; analysisMode: AnalysisMode; analysisResult: AnalysisResult | null }) => {
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
         return response.json();
@@ -124,13 +125,17 @@ export function TextEditor({
       console.log('Saving document with content:', {
         title,
         content: text,
-        htmlContent: editor.getHTML()
+        htmlContent: editor.getHTML(),
+        analysisMode: mode,
+        analysisResult: analysis,
       });
 
       await saveMutation.mutateAsync({
         title,
         content: text,
         htmlContent: editor.getHTML(),
+        analysisMode: mode,
+        analysisResult: analysis,
       });
 
       console.log('Document saved successfully');
@@ -220,6 +225,7 @@ export function TextEditor({
 
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
+      setAnalysis(result.analysis); // Update analysis state
 
     } catch (error: any) {
       console.error('Analysis error:', error);

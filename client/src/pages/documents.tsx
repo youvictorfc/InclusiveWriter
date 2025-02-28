@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Trash2, ChevronDown, ChevronUp, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { type Document } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -108,13 +108,42 @@ export default function Documents() {
                   </div>
 
                   {expandedId === doc.id && (
-                    <div className="pt-4 border-t">
+                    <div className="pt-4 border-t space-y-4">
                       <ScrollArea className="h-[400px] w-full rounded-md border p-4">
                         <div 
                           className="prose dark:prose-invert" 
                           dangerouslySetInnerHTML={{ __html: doc.htmlContent }}
                         />
                       </ScrollArea>
+
+                      {doc.analysisResult && (
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-2">Analysis Results ({doc.analysisMode} mode)</h4>
+                          <div className="space-y-2">
+                            {doc.analysisResult.issues.map((issue: any, index: number) => (
+                              <Card key={index} className="p-3">
+                                <div className="flex items-start gap-2">
+                                  {issue.severity === 'high' ? (
+                                    <AlertCircle className="h-4 w-4 text-red-500 mt-1" />
+                                  ) : issue.severity === 'medium' ? (
+                                    <AlertTriangle className="h-4 w-4 text-yellow-500 mt-1" />
+                                  ) : (
+                                    <Info className="h-4 w-4 text-blue-500 mt-1" />
+                                  )}
+                                  <div>
+                                    <div className="font-medium text-sm">Found: "{issue.text}"</div>
+                                    <div className="text-sm text-muted-foreground">{issue.reason}</div>
+                                    <div className="text-sm mt-1">
+                                      <span className="font-medium">Suggestion: </span>
+                                      {issue.suggestion}
+                                    </div>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

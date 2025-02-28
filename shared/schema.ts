@@ -23,6 +23,8 @@ export const documents = pgTable("documents", {
   title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
   htmlContent: text("html_content").notNull(),
+  analysisMode: text("analysis_mode"),
+  analysisResult: jsonb("analysis_result"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -32,6 +34,8 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
   userId: true,
   createdAt: true,
   updatedAt: true,
+  analysisMode: true,
+  analysisResult: true,
 });
 
 export type Document = typeof documents.$inferSelect;
