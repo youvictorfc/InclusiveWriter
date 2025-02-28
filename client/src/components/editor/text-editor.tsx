@@ -124,11 +124,21 @@ export function TextEditor({
     setSaving(true);
 
     try {
+      console.log('Saving document with content:', {
+        title,
+        content: text,
+        htmlContent: editor.getHTML()
+      });
+
       await saveMutation.mutateAsync({
         title,
         content: text,
         htmlContent: editor.getHTML(),
       });
+
+      console.log('Document saved successfully');
+    } catch (error) {
+      console.error('Save error:', error);
     } finally {
       setSaving(false);
     }
@@ -209,7 +219,7 @@ export function TextEditor({
           className: "bg-green-100 border-green-500",
           duration: 7000,
         });
-      }, 100); 
+      }, 100);
 
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
@@ -231,9 +241,9 @@ export function TextEditor({
       <div className="rounded-lg border bg-card w-full">
         <div className="border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="text-muted-foreground"
               onClick={handleSave}
               disabled={saving}
