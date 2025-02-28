@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'wouter';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { type Document } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Documents() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ['/api/documents'],
@@ -48,12 +49,14 @@ export default function Documents() {
     }
   };
 
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center text-sm text-muted-foreground mb-6">
-          <Link href="/" className="hover:text-primary">Home</Link>
-          <span className="mx-2">/</span>
           <span>Documents</span>
         </div>
 
@@ -69,28 +72,51 @@ export default function Documents() {
           ) : (
             documents?.map((doc) => (
               <Card key={doc.id} className="p-4">
-                <div className="flex items-center justify-between">
-                  <Link href={`/documents/${doc.id}`}>
-                    <div className="flex-grow cursor-pointer hover:text-primary">
-                      <h3 className="font-medium">{doc.title}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Last updated: {new Date(doc.updatedAt).toLocaleDateString()}
-                      </p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div 
+                      className="flex-grow cursor-pointer hover:text-primary"
+                      onClick={() => toggleExpand(doc.id)}
+                    >
+                      <div className="flex items-center">
+                        {expandedId === doc.id ? (
+                          <ChevronUp className="h-4 w-4 mr-2" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 mr-2" />
+                        )}
+                        <div>
+                          <h3 className="font-medium">{doc.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Last updated: {new Date(doc.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(doc.id)}
-                    disabled={deletingId === doc.id}
-                  >
-                    {deletingId === doc.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(doc.id)}
+                      disabled={deletingId === doc.id}
+                    >
+                      {deletingId === doc.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  {expandedId === doc.id && (
+                    <div className="pt-4 border-t">
+                      <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+                        <div 
+                          className="prose dark:prose-invert" 
+                          dangerouslySetInnerHTML={{ __html: doc.htmlContent }}
+                        />
+                      </ScrollArea>
+                    </div>
+                  )}
                 </div>
               </Card>
             ))
