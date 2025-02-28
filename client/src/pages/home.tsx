@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLocation } from "wouter";
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -22,17 +24,8 @@ export default function Home() {
   // Fetch document if we have an ID
   const { data: document, isLoading } = useQuery<Document>({
     queryKey: ['/api/documents', documentId],
-    enabled: !!documentId, // Only fetch if we have a document ID
+    enabled: !!documentId,
   });
-
-  // Update editor content when document loads
-  useEffect(() => {
-    if (document) {
-      console.log('Loading document:', document); // Debug log
-      setContent(document.content || '');
-      setHtmlContent(document.htmlContent || '');
-    }
-  }, [document]);
 
   if (documentId && isLoading) {
     return (
@@ -84,12 +77,15 @@ export default function Home() {
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 max-w-[400px] bg-muted/50">
+              <TabsList className="grid w-full grid-cols-3 max-w-[600px] bg-muted/50">
                 <TabsTrigger value="editor" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Editor
                 </TabsTrigger>
                 <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Analysis
+                </TabsTrigger>
+                <TabsTrigger value="document" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  Saved Document
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="editor" className="space-y-4">
@@ -107,6 +103,25 @@ export default function Home() {
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">
                 <SuggestionsPanel analysis={analysis} />
+              </TabsContent>
+              <TabsContent value="document" className="space-y-4">
+                {document ? (
+                  <Card className="p-6">
+                    <h2 className="text-xl font-semibold mb-4">{document.title}</h2>
+                    <ScrollArea className="h-[600px]">
+                      <div className="prose dark:prose-invert max-w-none">
+                        <div dangerouslySetInnerHTML={{ __html: document.htmlContent }} />
+                      </div>
+                    </ScrollArea>
+                    <div className="mt-4 text-sm text-muted-foreground">
+                      Last updated: {new Date(document.updatedAt).toLocaleString()}
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="p-6 text-center text-muted-foreground">
+                    {documentId ? 'Loading document...' : 'No document selected'}
+                  </Card>
+                )}
               </TabsContent>
             </Tabs>
           </div>
