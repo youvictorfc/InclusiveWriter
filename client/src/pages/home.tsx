@@ -22,10 +22,10 @@ export default function Home() {
   // Fetch document if we have an ID
   const { data: document, isLoading } = useQuery<Document>({
     queryKey: ['/api/documents', documentId],
-    enabled: !!documentId,
+    enabled: !!documentId, // Only fetch if we have a document ID
   });
 
-  // Update content when document loads
+  // Update editor content when document loads
   useEffect(() => {
     if (document) {
       console.log('Loading document:', document); // Debug log

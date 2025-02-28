@@ -40,6 +40,43 @@ export function TextEditor({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Highlight.configure({
+        multicolor: true,
+      }),
+    ],
+    content: htmlContent || '<p></p>', // Initialize with HTML content or empty paragraph
+    editorProps: {
+      attributes: {
+        class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
+        placeholder: 'Enter your text here to analyze (10,000 words max)...'
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const text = editor.getText();
+      const html = editor.getHTML();
+      onContentChange(text);
+      onHtmlContentChange(html);
+      const words = text.trim().split(/\s+/).length;
+      setWordCount(text.trim() ? words : 0);
+    },
+  });
+
+  // Update editor content when htmlContent prop changes
+  useEffect(() => {
+    if (editor && !editor.isDestroyed && htmlContent) {
+      console.log('Setting editor content:', { htmlContent });
+      editor.commands.setContent(htmlContent);
+    }
+  }, [editor, htmlContent]);
+
+  // Log when component receives new props
+  useEffect(() => {
+    console.log('TextEditor props updated:', { content, htmlContent, documentId });
+  }, [content, htmlContent, documentId]);
+
   const saveMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; htmlContent: string }) => {
       if (documentId) {
@@ -66,38 +103,6 @@ export function TextEditor({
       });
     },
   });
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Highlight.configure({
-        multicolor: true,
-      }),
-    ],
-    content: htmlContent, // Initialize with htmlContent prop
-    editorProps: {
-      attributes: {
-        class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
-        placeholder: 'Enter your text here to analyze (10,000 words max)...'
-      },
-    },
-    onUpdate: ({ editor }) => {
-      const text = editor.getText();
-      const html = editor.getHTML();
-      onContentChange(text);
-      onHtmlContentChange(html);
-      const words = text.trim().split(/\s+/).length;
-      setWordCount(text.trim() ? words : 0);
-    },
-  });
-
-  // Update editor content when htmlContent prop changes
-  useEffect(() => {
-    if (editor && !editor.isDestroyed && htmlContent) {
-      console.log('Setting editor content:', { htmlContent });
-      editor.commands.setContent(htmlContent);
-    }
-  }, [editor, htmlContent]);
 
   const handleSave = async () => {
     if (!editor) return;
