@@ -84,6 +84,7 @@ export default function AuthPage() {
           description: "Please check your email for verification instructions. You must verify your email before logging in.",
           className: "bg-green-100 border-green-500"
         });
+        setActiveTab('login'); // Switch to login tab after successful registration
       }
     });
   });

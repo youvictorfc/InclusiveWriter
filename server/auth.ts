@@ -61,6 +61,7 @@ export function setupAuth(app: Express) {
         if (!user || !(await comparePasswords(password, user.passwordHash))) {
           return done(null, false, { message: "Invalid username or password" });
         }
+
         // Explicitly check for email verification before allowing login
         if (!user.isVerified) {
           return done(null, false, { 
@@ -82,6 +83,9 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user?.isVerified) {
+        return done(null, false);
+      }
       done(null, user);
     } catch (error) {
       done(error);
@@ -97,6 +101,15 @@ export function setupAuth(app: Express) {
           code: info.code
         });
       }
+
+      // Double-check verification status before completing login
+      if (!user.isVerified) {
+        return res.status(401).json({
+          message: "Please verify your email before logging in.",
+          code: "EMAIL_NOT_VERIFIED"
+        });
+      }
+
       req.login(user, (err) => {
         if (err) return next(err);
         res.json(user);
@@ -199,7 +212,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-
   app.post("/api/logout", (req, res) => {
     req.logout(() => {
       res.sendStatus(200);
@@ -210,28 +222,14 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
     }
-    res.json(req.user);
-  });
-
-  app.post("/api/change-password", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-
-      const { currentPassword, newPassword } = req.body;
-      const user = await storage.getUser(req.user.id);
-
-      if (!user || !(await comparePasswords(currentPassword, user.passwordHash))) {
-        return res.status(400).json({ message: "Current password is incorrect" });
-      }
-
-      const newPasswordHash = await hashPassword(newPassword);
-      await storage.updateUserPassword(user.id, newPasswordHash);
-
-      res.json({ message: "Password updated successfully" });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+    // Double check verification status
+    if (!req.user?.isVerified) {
+      req.logout(() => {});
+      return res.status(401).json({
+        message: "Email verification required",
+        code: "EMAIL_NOT_VERIFIED"
+      });
     }
+    res.json(req.user);
   });
 }
