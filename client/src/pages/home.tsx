@@ -1,14 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { TextEditor } from '@/components/editor/text-editor';
 import { SuggestionsPanel } from '@/components/editor/suggestions-panel';
-import { type AnalysisResult, type AnalysisMode, type Document } from '@shared/schema';
+import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useLocation } from "wouter";
-import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -16,24 +11,6 @@ export default function Home() {
   const [content, setContent] = useState<string>('');
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [activeTab, setActiveTab] = useState('editor');
-  const [location] = useLocation();
-
-  // Extract document ID from location if we're editing an existing document
-  const documentId = location.startsWith('/documents/') ? parseInt(location.split('/')[2]) : undefined;
-
-  // Fetch document if we have an ID
-  const { data: document, isLoading } = useQuery<Document>({
-    queryKey: ['/api/documents', documentId],
-    enabled: !!documentId,
-  });
-
-  if (documentId && isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,15 +54,12 @@ export default function Home() {
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 max-w-[600px] bg-muted/50">
+              <TabsList className="grid w-full grid-cols-2 max-w-[400px] bg-muted/50">
                 <TabsTrigger value="editor" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Editor
                 </TabsTrigger>
                 <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Analysis
-                </TabsTrigger>
-                <TabsTrigger value="document" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Saved Document
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="editor" className="space-y-4">
@@ -98,30 +72,10 @@ export default function Home() {
                   onHtmlContentChange={setHtmlContent}
                   onShowAnalysis={() => setActiveTab('analysis')}
                   setMode={setMode}
-                  documentId={documentId}
                 />
               </TabsContent>
               <TabsContent value="analysis" className="space-y-4">
                 <SuggestionsPanel analysis={analysis} />
-              </TabsContent>
-              <TabsContent value="document" className="space-y-4">
-                {document ? (
-                  <Card className="p-6">
-                    <h2 className="text-xl font-semibold mb-4">{document.title}</h2>
-                    <ScrollArea className="h-[600px]">
-                      <div className="prose dark:prose-invert max-w-none">
-                        <div dangerouslySetInnerHTML={{ __html: document.htmlContent }} />
-                      </div>
-                    </ScrollArea>
-                    <div className="mt-4 text-sm text-muted-foreground">
-                      Last updated: {new Date(document.updatedAt).toLocaleString()}
-                    </div>
-                  </Card>
-                ) : (
-                  <Card className="p-6 text-center text-muted-foreground">
-                    {documentId ? 'Loading document...' : 'No document selected'}
-                  </Card>
-                )}
               </TabsContent>
             </Tabs>
           </div>
