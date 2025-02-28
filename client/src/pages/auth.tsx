@@ -18,13 +18,9 @@ const loginSchema = z.object({
 });
 
 export default function AuthPage() {
+  // Move useState to the top, before other hooks
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const { user, loginMutation, registerMutation } = useAuth();
-  const [activeTab, setActiveTab] = useState('login');
-
-  // Redirect to home if already logged in
-  if (user) {
-    return <Redirect to="/" />;
-  }
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
@@ -44,6 +40,11 @@ export default function AuthPage() {
       password: "",
     },
   });
+
+  // Handle user redirect after all hooks
+  if (user) {
+    return <Redirect to="/" />;
+  }
 
   const onLogin = loginForm.handleSubmit((data) => {
     loginMutation.mutate(data);
