@@ -13,8 +13,8 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS, // Your Outlook account password or app password
   },
   tls: {
-    ciphers: 'SSLv3',
-    rejectUnauthorized: false
+    rejectUnauthorized: true,
+    minVersion: "TLSv1.2"
   },
   debug: true, // Enable debug logs
   logger: true // Enable logger
@@ -22,6 +22,12 @@ const transporter = nodemailer.createTransport({
 
 export async function sendVerificationEmail(email: string, token: string) {
   const verificationLink = `${process.env.APP_URL}/verify-email?token=${token}`;
+
+  console.log('Sending verification email:', {
+    to: email,
+    from: process.env.EMAIL_USER,
+    link: verificationLink
+  });
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -37,13 +43,11 @@ export async function sendVerificationEmail(email: string, token: string) {
   };
 
   try {
-    console.log('Attempting to send verification email to:', email);
-    console.log('Configuration:', {
+    console.log('Attempting to send email using configuration:', {
       host: transporter.options.host,
       port: transporter.options.port,
       secure: transporter.options.secure,
-      user: process.env.EMAIL_USER,
-      appUrl: process.env.APP_URL
+      user: process.env.EMAIL_USER
     });
 
     const info = await transporter.sendMail(mailOptions);
@@ -51,8 +55,11 @@ export async function sendVerificationEmail(email: string, token: string) {
     return info;
   } catch (error: any) {
     console.error("Email sending error:", error);
-    if (error.response) {
-      console.error(error.response.body);
+    if (error.code === 'EAUTH') {
+      throw new Error('Failed to authenticate with the email server. Please check your email credentials.');
+    }
+    if (error.code === 'ESOCKET') {
+      throw new Error('Failed to connect to the email server. Please check your network connection.');
     }
     throw new Error(`Failed to send verification email: ${error.message}`);
   }
@@ -80,9 +87,6 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     return info;
   } catch (error: any) {
     console.error("Email sending error:", error);
-    if (error.response) {
-      console.error(error.response.body);
-    }
     throw new Error(`Failed to send password reset email: ${error.message}`);
   }
 }

@@ -86,14 +86,16 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res) => {
     try {
+      console.log('Registration attempt:', { username: req.body.username, email: req.body.email });
+
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(400).json({ message: "Username already exists. Please choose a different username." });
       }
 
       const existingEmail = await storage.getUserByEmail(req.body.email);
       if (existingEmail) {
-        return res.status(400).json({ message: "Email already registered" });
+        return res.status(400).json({ message: "Email already registered. Please use a different email or try logging in." });
       }
 
       const verificationToken = generateVerificationToken();
