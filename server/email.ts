@@ -5,11 +5,19 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
 }
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.office365.com",
+  port: 587,
+  secure: false, // Use TLS
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    pass: process.env.EMAIL_PASS, // Your Outlook account password or app password
   },
+  tls: {
+    ciphers: 'SSLv3',
+    rejectUnauthorized: false
+  },
+  debug: true, // Enable debug logs
+  logger: true // Enable logger
 });
 
 export async function sendVerificationEmail(email: string, token: string) {
@@ -18,16 +26,26 @@ export async function sendVerificationEmail(email: string, token: string) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Verify Your Email",
+    subject: "Verify Your Email - NOMW",
     html: `
       <h1>Welcome to NOMW!</h1>
       <p>Thank you for registering. Please click the link below to verify your email address:</p>
       <a href="${verificationLink}">${verificationLink}</a>
       <p>This link will expire in 24 hours.</p>
+      <p>If you didn't request this verification, please ignore this email.</p>
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    console.log('Attempting to send verification email to:', email);
+    await transporter.sendMail(mailOptions);
+  } catch (error: any) {
+    console.error("Email sending error:", error);
+    if (error.response) {
+      console.error(error.response.body);
+    }
+    throw new Error("Failed to send verification email. Please try again later.");
+  }
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
@@ -36,7 +54,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Reset Your Password",
+    subject: "Reset Your Password - NOMW",
     html: `
       <h1>Password Reset Request</h1>
       <p>You requested to reset your password. Click the link below to reset it:</p>
@@ -45,5 +63,14 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    console.log('Attempting to send password reset email to:', email);
+    await transporter.sendMail(mailOptions);
+  } catch (error: any) {
+    console.error("Email sending error:", error);
+    if (error.response) {
+      console.error(error.response.body);
+    }
+    throw new Error("Failed to send password reset email. Please try again later.");
+  }
 }
