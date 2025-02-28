@@ -38,13 +38,23 @@ export async function sendVerificationEmail(email: string, token: string) {
 
   try {
     console.log('Attempting to send verification email to:', email);
-    await transporter.sendMail(mailOptions);
+    console.log('Configuration:', {
+      host: transporter.options.host,
+      port: transporter.options.port,
+      secure: transporter.options.secure,
+      user: process.env.EMAIL_USER,
+      appUrl: process.env.APP_URL
+    });
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', info.response);
+    return info;
   } catch (error: any) {
     console.error("Email sending error:", error);
     if (error.response) {
       console.error(error.response.body);
     }
-    throw new Error("Failed to send verification email. Please try again later.");
+    throw new Error(`Failed to send verification email: ${error.message}`);
   }
 }
 
@@ -65,12 +75,14 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 
   try {
     console.log('Attempting to send password reset email to:', email);
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Password reset email sent successfully:', info.response);
+    return info;
   } catch (error: any) {
     console.error("Email sending error:", error);
     if (error.response) {
       console.error(error.response.body);
     }
-    throw new Error("Failed to send password reset email. Please try again later.");
+    throw new Error(`Failed to send password reset email: ${error.message}`);
   }
 }

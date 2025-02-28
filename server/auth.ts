@@ -100,6 +100,13 @@ export function setupAuth(app: Express) {
       const verificationExpires = new Date();
       verificationExpires.setHours(verificationExpires.getHours() + 24); // 24 hour expiry
 
+      console.log('Creating user with data:', {
+        username: req.body.username,
+        email: req.body.email,
+        verificationToken,
+        verificationExpires
+      });
+
       const passwordHash = await hashPassword(req.body.password);
       const user = await storage.createUser({
         ...req.body,
@@ -109,15 +116,31 @@ export function setupAuth(app: Express) {
         isVerified: false
       });
 
-      // Send verification email
-      await sendVerificationEmail(user.email, verificationToken);
+      console.log('User created successfully, sending verification email...');
+
+      try {
+        await sendVerificationEmail(user.email, verificationToken);
+        console.log('Verification email sent successfully');
+      } catch (emailError: any) {
+        console.error('Failed to send verification email:', emailError);
+        // Even if email fails, we want to let the user know their account was created
+        return res.status(201).json({
+          message: "Account created but we couldn't send the verification email. Please try logging in later or contact support.",
+          username: user.username,
+          error: emailError.message
+        });
+      }
 
       res.status(201).json({ 
         message: "Registration successful. Please check your email to verify your account.",
         username: user.username
       });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('Registration error:', error);
+      res.status(500).json({ 
+        message: "Registration failed",
+        error: error.message 
+      });
     }
   });
 
