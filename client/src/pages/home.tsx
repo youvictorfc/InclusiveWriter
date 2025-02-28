@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TextEditor } from '@/components/editor/text-editor';
 import { SuggestionsPanel } from '@/components/editor/suggestions-panel';
 import { type AnalysisResult, type AnalysisMode } from '@shared/schema';
@@ -25,7 +25,7 @@ export default function Home() {
   });
 
   // Set content from document when it loads
-  useState(() => {
+  useEffect(() => {
     if (document) {
       setContent(document.content);
       setHtmlContent(document.htmlContent);
