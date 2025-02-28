@@ -1,25 +1,39 @@
 import nodemailer from "nodemailer";
 
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !process.env.APP_URL) {
-  throw new Error("Email credentials and APP_URL are required");
+// Check if all required environment variables are present
+const requiredEnvVars = ['EMAIL_USER', 'EMAIL_PASS', 'APP_URL'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('Missing required environment variables:', missingVars);
+  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
 }
+
+console.log('Initializing email transport with:', {
+  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  user: process.env.EMAIL_USER
+});
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true, // Use SSL
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // App Password from Gmail
+    pass: process.env.EMAIL_PASS,
   },
-  debug: true
+  debug: true,
+  logger: true // Enable detailed SMTP logging
 });
 
 // Verify connection configuration
 transporter.verify(function(error, success) {
   if (error) {
     console.error('SMTP connection error:', error);
+    throw error; // This will help us see the error in the server logs
   } else {
     console.log("SMTP server is ready to send emails");
   }
@@ -55,7 +69,7 @@ export async function sendVerificationEmail(email: string, token: string) {
     console.log('Sending email with configuration:', {
       service: 'gmail',
       host: 'smtp.gmail.com',
-      port: 587,
+      port: 465,
       user: process.env.EMAIL_USER
     });
 
@@ -68,13 +82,15 @@ export async function sendVerificationEmail(email: string, token: string) {
     // Add detailed error logging
     if (error.code === 'EAUTH') {
       console.error('Authentication error - please check Gmail credentials and ensure App Password is being used');
+      throw new Error('Failed to authenticate with Gmail. Please ensure you are using an App Password, not your regular Gmail password.');
     } else if (error.code === 'ESOCKET') {
       console.error('Socket error - please check network connection');
+      throw new Error('Failed to connect to Gmail SMTP server. Please check network connection.');
     } else if (error.code === 'EENVELOPE') {
       console.error('Envelope error - please check email addresses');
+      throw new Error('Invalid email address format.');
     }
 
-    // Throw a more informative error
     throw new Error(`Failed to send verification email: ${error.message}`);
   }
 }
