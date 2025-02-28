@@ -5,19 +5,14 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
 }
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.office365.com",
+  service: 'gmail',
+  host: 'smtp.gmail.com',
   port: 587,
-  secure: false, // Use TLS
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Your Outlook account password or app password
+    pass: process.env.EMAIL_PASS, // Use App Password from Gmail
   },
-  tls: {
-    rejectUnauthorized: true,
-    minVersion: "TLSv1.2"
-  },
-  debug: true, // Enable debug logs
-  logger: true // Enable logger
 });
 
 export async function sendVerificationEmail(email: string, token: string) {
@@ -43,24 +38,11 @@ export async function sendVerificationEmail(email: string, token: string) {
   };
 
   try {
-    console.log('Attempting to send email using configuration:', {
-      host: transporter.options.host,
-      port: transporter.options.port,
-      secure: transporter.options.secure,
-      user: process.env.EMAIL_USER
-    });
-
     const info = await transporter.sendMail(mailOptions);
     console.log('Email sent successfully:', info.response);
     return info;
   } catch (error: any) {
     console.error("Email sending error:", error);
-    if (error.code === 'EAUTH') {
-      throw new Error('Failed to authenticate with the email server. Please check your email credentials.');
-    }
-    if (error.code === 'ESOCKET') {
-      throw new Error('Failed to connect to the email server. Please check your network connection.');
-    }
     throw new Error(`Failed to send verification email: ${error.message}`);
   }
 }
@@ -81,7 +63,6 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   };
 
   try {
-    console.log('Attempting to send password reset email to:', email);
     const info = await transporter.sendMail(mailOptions);
     console.log('Password reset email sent successfully:', info.response);
     return info;

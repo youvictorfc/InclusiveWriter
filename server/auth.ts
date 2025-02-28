@@ -173,9 +173,10 @@ export function setupAuth(app: Express) {
         });
       }
 
+      // Return success WITHOUT logging in the user
       res.status(201).json({ 
         success: true,
-        message: "Registration successful. Please check your email to verify your account.",
+        message: "Registration successful. Please check your email to verify your account before logging in.",
         username: user.username
       });
     } catch (error: any) {
