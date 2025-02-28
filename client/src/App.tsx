@@ -141,6 +141,11 @@ function Router() {
           </Layout>
         )} 
       />
+      <Route path="/documents/:id" component={() => (
+        <Layout>
+          <Home />
+        </Layout>
+      )} />
       <Route component={NotFound} />
     </Switch>
   );
