@@ -92,6 +92,38 @@ export function setupAuth(app: Express) {
     }
   });
 
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err: Error, user: SelectUser, info: any) => {
+      if (err) {
+        console.error('Login error:', err);
+        return next(err);
+      }
+
+      if (!user) {
+        return res.status(401).json({ 
+          message: info.message || "Invalid username or password",
+          code: info.code
+        });
+      }
+
+      // Check verification status before completing login
+      if (!user.isVerified) {
+        return res.status(401).json({
+          message: "Please verify your email before logging in. Check your inbox for the verification link.",
+          code: "EMAIL_NOT_VERIFIED"
+        });
+      }
+
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error('Login session error:', loginErr);
+          return next(loginErr);
+        }
+        res.json(user);
+      });
+    })(req, res, next);
+  });
+
   app.post("/api/register", async (req, res) => {
     try {
       console.log('Registration attempt:', { username: req.body.username, email: req.body.email });
