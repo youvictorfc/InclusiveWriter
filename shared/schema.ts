@@ -43,13 +43,18 @@ export const insertAnalysisSchema = createInsertSchema(analyses).omit({
   id: true,
 });
 
-export type Analysis = typeof analyses.$inferSelect;
-export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
+export type Analysis = {
+  id: number;
+  content: string;
+  mode: AnalysisMode;
+  analysis: AnalysisResult;
+};
+export type InsertAnalysis = Omit<Analysis, 'id'>;
 
 // Add documents table after analyses table
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
-  userId: serial("user_id").references(() => users.id).notNull(),
+  userId: varchar("user_id", {length: 36}).references(() => users.id).notNull(), // Changed to varchar(36) for UUID
   title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
   htmlContent: text("html_content").notNull(),
@@ -68,16 +73,25 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
   analysisResult: true,
 });
 
-export type Document = typeof documents.$inferSelect;
-export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+export type Document = {
+  id: number;
+  userId: string; // Changed from number to string for Supabase UUID
+  title: string;
+  content: string;
+  htmlContent: string;
+  analysisMode?: AnalysisMode;
+  analysisResult?: AnalysisResult;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InsertDocument = Omit<Document, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 
 export type AnalysisMode = 'language' | 'policy' | 'recruitment';
 
 export type AnalysisResult = {
   issues: Array<{
     text: string;
-    startIndex: number;
-    endIndex: number;
     suggestion: string;
     reason: string;
     severity: 'low' | 'medium' | 'high';
@@ -88,8 +102,6 @@ export const analysisResultSchema = z.object({
   issues: z.array(
     z.object({
       text: z.string(),
-      startIndex: z.number(),
-      endIndex: z.number(),
       suggestion: z.string(),
       reason: z.string(),
       severity: z.enum(['low', 'medium', 'high']),
