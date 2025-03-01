@@ -25,8 +25,13 @@ export async function registerRoutes(app: Express) {
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
-      if (error || !user) {
+      if (error) {
+        console.error('Auth error:', error);
         return res.status(401).json({ error: "Invalid or expired token" });
+      }
+
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
       }
 
       req.user = user;

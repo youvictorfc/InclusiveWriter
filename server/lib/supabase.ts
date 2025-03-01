@@ -26,8 +26,8 @@ export const supabaseAdmin = createClient(
   }
 );
 
-// Test the connection
-supabaseAdmin.auth.getUser().then(({ data, error }) => {
+// Test the admin client connection
+supabaseAdmin.auth.admin.listUsers().then(({ data, error }) => {
   if (error) {
     console.error('Server Supabase initialization error:', error);
   } else {
