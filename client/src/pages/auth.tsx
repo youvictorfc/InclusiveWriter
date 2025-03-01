@@ -7,15 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
+// Define form schemas
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const registerSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
 });
 
 type TabType = 'login' | 'register';
@@ -28,15 +34,13 @@ export default function AuthPage() {
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
 
   const registerForm = useForm({
-    resolver: zodResolver(insertUserSchema.extend({
-      password: z.string().min(6, "Password must be at least 6 characters"),
-    })),
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
       email: "",
@@ -54,7 +58,7 @@ export default function AuthPage() {
         toast({
           title: "Login Failed",
           description: error.message,
-          variant: "destructive"
+          className: "bg-red-100 border-red-500"
         });
       }
     });
@@ -68,23 +72,15 @@ export default function AuthPage() {
           toast({
             title: "Account Already Exists",
             description: "This email is already registered. Please log in instead.",
-            variant: "destructive"
+            className: "bg-yellow-100 border-yellow-500"
           });
         } else {
           toast({
             title: "Registration Failed",
             description: error.message || "An error occurred during registration. Please try again.",
-            variant: "destructive"
+            className: "bg-red-100 border-red-500"
           });
         }
-      },
-      onSuccess: (response: any) => {
-        toast({
-          title: "Registration Successful",
-          description: "Please check your email for verification instructions. You must verify your email before logging in.",
-          className: "bg-green-100 border-green-500"
-        });
-        setActiveTab('login'); // Switch to login tab after successful registration
       }
     });
   });
@@ -113,12 +109,12 @@ export default function AuthPage() {
                 <form onSubmit={onLogin} className="space-y-4">
                   <FormField
                     control={loginForm.control}
-                    name="username"
+                    name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Username</FormLabel>
+                        <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your username" {...field} />
+                          <Input type="email" placeholder="Enter your email" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
