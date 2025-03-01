@@ -11,5 +11,7 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// This file is kept for compatibility but we now use Supabase for database operations
+console.log('Database operations are now handled through Supabase');
+
+export const db = null; // Database operations are now handled through Supabase
