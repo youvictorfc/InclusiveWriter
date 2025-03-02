@@ -28,15 +28,17 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Initial session check
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Initial session check error:', error);
-      }
-      setInitialLoadComplete(true);
+    console.log('Checking initial session...');
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check complete:', session ? 'has session' : 'no session');
+      setIsInitializing(false);
+    }).catch(error => {
+      console.error('Session check error:', error);
+      setIsInitializing(false);
     });
   }, []);
 
@@ -50,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
+        console.log('Auth query result:', user ? 'user found' : 'no user');
         if (error) throw error;
         return user;
       } catch (error) {
@@ -57,18 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    enabled: initialLoadComplete, // Only run query after initial session check
+    enabled: !isInitializing,
   });
 
   // Listen for auth state changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
-      if (session) {
-        await refetch();
-      } else {
-        await refetch();
-      }
+      console.log('Auth state changed:', event, session ? 'has session' : 'no session');
+      await refetch();
     });
 
     return () => {
@@ -159,9 +158,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // If initial load is not complete, show nothing
-  if (!initialLoadComplete) {
-    return null;
+  if (isInitializing) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-sm text-muted-foreground">Initializing authentication...</p>
+      </div>
+    );
   }
 
   return (
