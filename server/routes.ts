@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { type AnalysisMode, analysisResultSchema } from "@shared/schema";
-import { supabaseAdmin } from "./lib/supabase";
+import { setupAuth } from "./auth";
 
 // Validate OpenAI API key
 if (!process.env.OPENAI_API_KEY) {
@@ -14,36 +14,15 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 export async function registerRoutes(app: Express) {
-  // Supabase Auth Middleware
-  const authenticateUser = async (req: any, res: any, next: any) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: "Authorization header missing" });
-    }
+  // Set up authentication routes first
+  setupAuth(app);
 
+  app.post("/api/documents", async (req, res) => {
     try {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-
-      if (error) {
-        console.error('Auth error:', error);
-        return res.status(401).json({ error: "Invalid or expired token" });
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
       }
 
-      if (!user) {
-        return res.status(401).json({ error: "User not found" });
-      }
-
-      req.user = user;
-      next();
-    } catch (error) {
-      console.error('Auth error:', error);
-      return res.status(401).json({ error: "Authentication failed" });
-    }
-  };
-
-  app.post("/api/documents", authenticateUser, async (req, res) => {
-    try {
       const document = await storage.createDocument({
         ...req.body,
         userId: req.user.id,
@@ -56,8 +35,12 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/documents", authenticateUser, async (req, res) => {
+  app.get("/api/documents", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const documents = await storage.getUserDocuments(req.user.id);
       res.json(documents);
     } catch (error) {
@@ -66,8 +49,12 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/documents/:id", authenticateUser, async (req, res) => {
+  app.get("/api/documents/:id", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
@@ -84,8 +71,12 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/documents/:id", authenticateUser, async (req, res) => {
+  app.patch("/api/documents/:id", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
@@ -103,8 +94,12 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/documents/:id", authenticateUser, async (req, res) => {
+  app.delete("/api/documents/:id", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
@@ -122,7 +117,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/analyze", authenticateUser, async (req, res) => {
+  app.post("/api/analyze", async (req, res) => {
     try {
       const { content, mode } = req.body;
 
@@ -135,7 +130,12 @@ export async function registerRoutes(app: Express) {
         throw new Error('Valid mode is required');
       }
 
+      // Ensure user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
+      // First, detect the content type
       const contentTypeResponse = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
@@ -145,6 +145,18 @@ export async function registerRoutes(app: Express) {
               1. A policy document (containing organizational guidelines, rules, or procedures)
               2. A recruitment document (job posting, job description, or hiring-related content)
               3. General text (any other type of content)
+
+              For policy documents, look for:
+              - Organizational rules and procedures
+              - Guidelines for employee behavior
+              - Company-wide standards
+              - Terms and conditions
+
+              For recruitment documents, look for:
+              - Job requirements and qualifications
+              - Position descriptions
+              - Hiring process details
+              - Candidate requirements
 
               Return the result in this exact JSON format:
               {
@@ -171,6 +183,7 @@ export async function registerRoutes(app: Express) {
           suggestedMode: detectedMode as AnalysisMode,
           explanation: `It looks like you're analyzing ${contentType.type} content. ${contentType.explanation} You might get better results using the ${detectedMode} mode.`
         };
+        console.log('Created mode suggestion:', modeSuggestion); // Debug log
       }
 
       // Select the appropriate system prompt based on mode
@@ -253,6 +266,8 @@ export async function registerRoutes(app: Express) {
               "issues": [
                 {
                   "text": "exact text found",
+                  "startIndex": 0,
+                  "endIndex": 0,
                   "suggestion": "suggested replacement",
                   "reason": "explanation of why this needs to be changed",
                   "severity": "low" | "medium" | "high"
@@ -275,6 +290,8 @@ export async function registerRoutes(app: Express) {
         analysis: {
           issues: analysisResult.issues.map((issue: any) => ({
             text: issue.text,
+            startIndex: 0,
+            endIndex: 0,
             suggestion: issue.suggestion,
             reason: issue.reason,
             severity: issue.severity,
@@ -283,6 +300,7 @@ export async function registerRoutes(app: Express) {
         modeSuggestion
       };
 
+      console.log('Sending response with modeSuggestion:', !!modeSuggestion); // Debug log
       res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);
@@ -297,6 +315,11 @@ export async function registerRoutes(app: Express) {
         if (error.status === 401) {
           return res.status(401).json({
             error: "Invalid OpenAI API key. Please check your API key configuration."
+          });
+        }
+        if (error.status === 500) {
+          return res.status(500).json({
+            error: "OpenAI service error. Please try again later."
           });
         }
         return res.status(error.status || 500).json({

@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -28,19 +28,6 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [isInitializing, setIsInitializing] = useState(true);
-
-  // Initial session check
-  useEffect(() => {
-    console.log('Checking initial session...');
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check complete:', session ? 'has session' : 'no session');
-      setIsInitializing(false);
-    }).catch(error => {
-      console.error('Session check error:', error);
-      setIsInitializing(false);
-    });
-  }, []);
 
   const {
     data: user,
@@ -50,24 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery({
     queryKey: ["auth-user"],
     queryFn: async () => {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        console.log('Auth query result:', user ? 'user found' : 'no user');
-        if (error) throw error;
-        return user;
-      } catch (error) {
-        console.error('Auth query error:', error);
-        return null;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
     },
-    enabled: !isInitializing,
   });
 
   // Listen for auth state changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session ? 'has session' : 'no session');
-      await refetch();
+      if (session) {
+        await refetch();
+      }
     });
 
     return () => {
@@ -94,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
-      console.error('Login error:', error);
       toast({
         title: "Login Failed",
         description: error.message,
@@ -126,7 +105,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
-      console.error('Registration error:', error);
       toast({
         title: "Registration Failed",
         description: error.message,
@@ -149,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
-      console.error('Logout error:', error);
       toast({
         title: "Logout Failed",
         description: error.message,
@@ -157,15 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
-
-  if (isInitializing) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">Initializing authentication...</p>
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider

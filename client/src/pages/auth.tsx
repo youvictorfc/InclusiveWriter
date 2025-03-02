@@ -28,7 +28,7 @@ type TabType = 'login' | 'register';
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<TabType>('login');
-  const { user, loginMutation, registerMutation, isLoading } = useAuth();
+  const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
 
   const loginForm = useForm({
@@ -48,17 +48,6 @@ export default function AuthPage() {
     },
   });
 
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">Loading your session...</p>
-      </div>
-    );
-  }
-
-  // Redirect if already logged in
   if (user) {
     return <Redirect to="/" />;
   }
@@ -66,7 +55,6 @@ export default function AuthPage() {
   const onLogin = loginForm.handleSubmit((data) => {
     loginMutation.mutate(data, {
       onError: (error: any) => {
-        console.error('Login error:', error);
         toast({
           title: "Login Failed",
           description: error.message,
@@ -79,7 +67,6 @@ export default function AuthPage() {
   const onRegister = registerForm.handleSubmit((data) => {
     registerMutation.mutate(data, {
       onError: (error: any) => {
-        console.error('Registration error:', error);
         if (error.message?.includes('Email already registered')) {
           setActiveTab('login');
           toast({

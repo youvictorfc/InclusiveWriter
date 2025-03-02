@@ -9,7 +9,6 @@ import AuthPage from "@/pages/auth";
 import Documents from "@/pages/documents";
 import Settings from "@/pages/settings";
 import { ProtectedRoute } from "@/lib/protected-route";
-import { Loader2 } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -93,17 +92,6 @@ function MainNav() {
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">Loading your session...</p>
-      </div>
-    );
-  }
-
   return (
     <SidebarProvider defaultOpen={false}>
       <Sidebar 
@@ -126,17 +114,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
-  const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">Loading your session...</p>
-      </div>
-    );
-  }
-
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
