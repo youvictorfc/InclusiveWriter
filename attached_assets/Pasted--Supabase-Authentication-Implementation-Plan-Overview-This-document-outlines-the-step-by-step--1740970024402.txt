@@ -1,0 +1,128 @@
+# Supabase Authentication Implementation Plan
+
+## Overview
+
+This document outlines the step-by-step process to migrate the NOMW (NotOnMyWatch) application from a custom authentication system using Passport.js to Supabase Authentication.
+
+## Prerequisites
+
+- Supabase account
+- Access to your application's codebase
+- Database access for migrations
+- Ability to set environment variables
+
+## Implementation Steps
+
+### Phase 1: Setup and Preparation
+
+1. **Create Supabase Project**
+   - Follow instructions in SUPABASE_SETUP.md
+   - Set up authentication settings in Supabase dashboard
+   - Configure email templates and redirects
+
+2. **Install Dependencies**
+   - Add `@supabase/supabase-js` to your project
+   - Update package.json dependencies
+
+3. **Set Environment Variables**
+   - Add Supabase URL and API keys to environment variables
+   - Create .env file for development
+   - Set up client-side environment variables for Vite
+
+### Phase 2: Database Migration
+
+1. **Update Schema**
+   - Add supabaseId column to users table
+   - Make password_hash nullable
+   - Add appropriate indexes
+
+2. **Migrate Existing Users (Optional)**
+   - Create a script to migrate existing users to Supabase
+   - For each user, create a Supabase account and link it to the existing record
+   - Alternative: Require users to re-register
+
+3. **Run Migrations**
+   - Execute the migration script to update the database schema
+
+### Phase 3: Client-Side Implementation
+
+1. **Create Supabase Client**
+   - Set up the Supabase client configuration
+   - Create helper functions for authentication
+
+2. **Update Authentication Context**
+   - Replace custom auth with Supabase auth
+   - Implement login, register, logout, and password reset functions
+   - Handle auth state management
+
+3. **Update Authentication UI**
+   - Modify login, registration, and password reset forms
+   - Add email verification handling
+   - Create auth callback handling for redirects
+
+4. **Update Protected Routes**
+   - Modify the protected route component to work with Supabase auth
+   - Ensure proper authentication state management
+
+### Phase 4: Server-Side Implementation
+
+1. **Implement Supabase Auth Middleware**
+   - Create middleware for API authentication
+   - Verify Supabase JWT tokens
+   - Link Supabase users to your application's user records
+
+2. **Update API Routes**
+   - Replace custom auth checks with Supabase auth middleware
+   - Ensure correct user data handling
+
+3. **Update User Data Storage**
+   - Modify storage interface to work with Supabase
+   - Link existing data to Supabase user IDs
+
+### Phase 5: Testing and Deployment
+
+1. **Local Testing**
+   - Test all authentication flows:
+     - Registration and email verification
+     - Login and logout
+     - Password reset
+     - Protected routes access
+
+2. **Prepare for Production**
+   - Update environment variables for production
+   - Configure production-specific settings
+
+3. **Deployment**
+   - Deploy the updated application
+   - Monitor for any authentication issues
+
+4. **Post-Deployment Verification**
+   - Verify all authentication flows in production
+   - Check that existing user data is properly linked
+
+## Rollback Plan
+
+In case of critical issues:
+
+1. Keep the previous authentication code and database structure
+2. If needed, revert to the previous version of the application
+3. Turn off Supabase authentication temporarily if issues are detected
+
+## Timeline
+
+- Phase 1: 1 day
+- Phase 2: 1-2 days
+- Phase 3: 2-3 days
+- Phase 4: 1-2 days
+- Phase 5: 1-2 days
+
+Total estimated time: 6-10 days depending on complexity and existing user data
+
+## Monitoring and Maintenance
+
+After implementation:
+
+1. Monitor authentication success rates
+2. Check for any user complaints or issues
+3. Review Supabase logs for authentication errors
+4. Consider setting up additional analytics for auth flows

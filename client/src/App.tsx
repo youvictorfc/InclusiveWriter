@@ -25,7 +25,7 @@ import { Link, useLocation } from "wouter";
 
 function MainNav() {
   const [location] = useLocation();
-  const { logoutMutation } = useAuth();
+  const { signOut } = useAuth();
 
   return (
     <SidebarMenu className="flex flex-col h-full">
@@ -78,11 +78,11 @@ function MainNav() {
           <SidebarMenuButton 
             asChild 
             tooltip="Logout"
-            onClick={() => logoutMutation.mutate()}
+            onClick={signOut}
           >
             <button className="flex items-center w-full text-left">
               <LogOut className="mr-2" />
-              <span>{logoutMutation.isPending ? "Logging out..." : "Logout"}</span>
+              <span>Logout</span>
             </button>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -141,11 +141,6 @@ function Router() {
           </Layout>
         )} 
       />
-      <Route path="/documents/:id" component={() => (
-        <Layout>
-          <Home />
-        </Layout>
-      )} />
       <Route component={NotFound} />
     </Switch>
   );
