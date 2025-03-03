@@ -7,40 +7,35 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
-import { useState } from 'react';
-import { useToast } from "@/hooks/use-toast";
 
-// Define form schemas
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
+  username: z.string().min(1, "Username is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
-
-const registerSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
-});
-
-type TabType = 'login' | 'register';
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('login');
   const { user, loginMutation, registerMutation } = useAuth();
-  const { toast } = useToast();
+
+  // Redirect to home if already logged in
+  if (user) {
+    return <Redirect to="/" />;
+  }
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
 
   const registerForm = useForm({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(insertUserSchema.extend({
+      password: z.string().min(6, "Password must be at least 6 characters"),
+    })),
     defaultValues: {
       username: "",
       email: "",
@@ -48,46 +43,13 @@ export default function AuthPage() {
     },
   });
 
-  if (user) {
-    return <Redirect to="/" />;
-  }
-
   const onLogin = loginForm.handleSubmit((data) => {
-    loginMutation.mutate(data, {
-      onError: (error: any) => {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          className: "bg-red-100 border-red-500"
-        });
-      }
-    });
+    loginMutation.mutate(data);
   });
 
   const onRegister = registerForm.handleSubmit((data) => {
-    registerMutation.mutate(data, {
-      onError: (error: any) => {
-        if (error.message?.includes('Email already registered')) {
-          setActiveTab('login');
-          toast({
-            title: "Account Already Exists",
-            description: "This email is already registered. Please log in instead.",
-            className: "bg-yellow-100 border-yellow-500"
-          });
-        } else {
-          toast({
-            title: "Registration Failed",
-            description: error.message || "An error occurred during registration. Please try again.",
-            className: "bg-red-100 border-red-500"
-          });
-        }
-      }
-    });
+    registerMutation.mutate(data);
   });
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value as TabType);
-  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -98,7 +60,7 @@ export default function AuthPage() {
             Sign in to access the Inclusive Language Assistant
           </p>
 
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
+          <Tabs defaultValue="login" className="mt-8">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
@@ -109,12 +71,12 @@ export default function AuthPage() {
                 <form onSubmit={onLogin} className="space-y-4">
                   <FormField
                     control={loginForm.control}
-                    name="email"
+                    name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Username</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="Enter your email" {...field} />
+                          <Input placeholder="Enter your username" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

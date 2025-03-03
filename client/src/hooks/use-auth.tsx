@@ -1,136 +1,83 @@
-import { createContext, ReactNode, useContext, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { createContext, ReactNode, useContext } from "react";
+import {
+  useQuery,
+  useMutation,
+  UseMutationResult,
+} from "@tanstack/react-query";
+import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "@supabase/supabase-js";
 
 type AuthContextType = {
-  user: User | null;
+  user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: any;
-  logoutMutation: any;
-  registerMutation: any;
+  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  logoutMutation: UseMutationResult<void, Error, void>;
+  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
 
-type LoginData = {
-  email: string;
-  password: string;
-};
-
-type RegisterData = {
-  email: string;
-  password: string;
-  username?: string;
-};
+type LoginData = Pick<InsertUser, "username" | "password">;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-
   const {
     data: user,
     error,
     isLoading,
-    refetch
-  } = useQuery({
-    queryKey: ["auth-user"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
+  } = useQuery<SelectUser | undefined, Error>({
+    queryKey: ["/api/user"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
   });
-
-  // Listen for auth state changes
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        await refetch();
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [refetch]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password,
-      });
-
-      if (error) throw error;
-      return data.user;
+      const res = await apiRequest("POST", "/api/login", credentials);
+      return await res.json();
     },
-    onSuccess: () => {
-      refetch();
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-        className: "bg-green-100 border-green-500",
-      });
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
       toast({
-        title: "Login Failed",
+        title: "Login failed",
         description: error.message,
-        className: "bg-red-100 border-red-500",
+        variant: "destructive",
       });
     },
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: RegisterData) => {
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            username: data.username,
-          },
-        },
-      });
-
-      if (error) throw error;
-      return authData.user;
+    mutationFn: async (credentials: InsertUser) => {
+      const res = await apiRequest("POST", "/api/register", credentials);
+      return await res.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Registration Successful",
-        description: "Please check your email for verification instructions.",
-        className: "bg-green-100 border-green-500",
-      });
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
       toast({
-        title: "Registration Failed",
+        title: "Registration failed",
         description: error.message,
-        className: "bg-red-100 border-red-500",
+        variant: "destructive",
       });
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
-      refetch();
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
-        className: "bg-green-100 border-green-500",
-      });
+      queryClient.setQueryData(["/api/user"], null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Logout Failed",
+        title: "Logout failed",
         description: error.message,
-        className: "bg-red-100 border-red-500",
+        variant: "destructive",
       });
     },
   });

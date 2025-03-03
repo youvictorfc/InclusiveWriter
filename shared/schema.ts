@@ -2,36 +2,6 @@ import { pgTable, text, serial, jsonb, timestamp, varchar, boolean } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Update users table with verification fields
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: varchar("username", { length: 50 }).notNull().unique(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  isVerified: boolean("is_verified").default(false).notNull(),
-  verificationToken: text("verification_token"),
-  verificationExpires: timestamp("verification_expires"),
-});
-
-// Enhanced validation for registration
-export const insertUserSchema = createInsertSchema(users)
-  .omit({
-    id: true,
-    passwordHash: true,
-    createdAt: true,
-    isVerified: true,
-    verificationToken: true,
-    verificationExpires: true,
-  })
-  .extend({
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    email: z.string().email("Please enter a valid email address"),
-  });
-
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-
 export const analyses = pgTable("analyses", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
@@ -70,6 +40,36 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
 
 export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+
+// Update users table with verification fields
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isVerified: boolean("is_verified").default(false).notNull(),
+  verificationToken: text("verification_token"),
+  verificationExpires: timestamp("verification_expires"),
+});
+
+// Enhanced validation for registration
+export const insertUserSchema = createInsertSchema(users)
+  .omit({
+    id: true,
+    passwordHash: true,
+    createdAt: true,
+    isVerified: true,
+    verificationToken: true,
+    verificationExpires: true,
+  })
+  .extend({
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    email: z.string().email("Please enter a valid email address"),
+  });
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type AnalysisMode = 'language' | 'policy' | 'recruitment';
 
