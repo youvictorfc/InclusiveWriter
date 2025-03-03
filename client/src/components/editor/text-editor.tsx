@@ -160,13 +160,40 @@ export function TextEditor({
 
     setAnalyzing(true);
     try {
-      const response = await apiRequest('POST', '/api/analyze', {
-        content: currentContent,
-        mode
+      // First check if we have a valid session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to analyze text.",
+          className: "bg-red-100 border-red-500",
+        });
+        return;
+      }
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          content: currentContent,
+          mode
+        })
       });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || `Analysis failed with status ${response.status}`);
+      }
 
       const data = await response.json();
       console.log('Analysis result:', data);
+
+      if (!data.analysis || !Array.isArray(data.analysis.issues)) {
+        throw new Error('Invalid analysis response format');
+      }
 
       editor.commands.unsetHighlight();
 

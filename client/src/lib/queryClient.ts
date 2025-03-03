@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
+    const text = await res.text();
     throw new Error(`${res.status}: ${text}`);
   }
 }
@@ -41,6 +41,11 @@ export async function apiRequest(
     return res;
   } catch (error: any) {
     console.error('API Request error:', error);
+    if (error.message.includes('Not authenticated')) {
+      // Redirect to login or handle authentication error
+      window.location.href = '/auth';
+      throw new Error('Please log in to continue');
+    }
     throw error;
   }
 }
