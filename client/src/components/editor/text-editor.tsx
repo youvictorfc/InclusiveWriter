@@ -10,6 +10,7 @@ import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { supabase } from '@/lib/supabase';
 
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
@@ -37,7 +38,7 @@ export function TextEditor({
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null); // Added state for analysis results
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -65,7 +66,6 @@ export function TextEditor({
     },
   });
 
-  // Update editor content when htmlContent prop changes
   useEffect(() => {
     if (editor && !editor.isDestroyed && htmlContent) {
       console.log('Setting editor content:', { htmlContent });
@@ -73,13 +73,17 @@ export function TextEditor({
     }
   }, [editor, htmlContent]);
 
-  // Log when component receives new props
   useEffect(() => {
     console.log('TextEditor props updated:', { content, htmlContent, documentId });
   }, [content, htmlContent, documentId]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; htmlContent: string; analysisMode: AnalysisMode; analysisResult: AnalysisResult | null }) => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
         return response.json();
@@ -168,9 +172,35 @@ export function TextEditor({
       return;
     }
 
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.access_token) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to analyze text.",
+        className: "bg-red-100 border-red-500",
+      });
+      return;
+    }
+
     setAnalyzing(true);
     try {
-      const result = await analyzeText(currentContent, mode);
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`
+        },
+        body: JSON.stringify({
+          content: currentContent,
+          mode
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Analysis failed');
+      }
+
+      const result = await response.json();
       console.log('Analysis result:', result);
 
       editor.commands.unsetHighlight();
@@ -187,9 +217,12 @@ export function TextEditor({
         }
       });
 
+      onHtmlContentChange(editor.getHTML());
+      onAnalysis(result.analysis);
+      setAnalysis(result.analysis);
+
       if (result.modeSuggestion) {
         toast({
-          id: "mode-suggestion",
           title: "Mode Suggestion",
           description: (
             <div className="space-y-2">
@@ -209,23 +242,16 @@ export function TextEditor({
         });
       }
 
-      setTimeout(() => {
-        toast({
-          id: "analysis-complete",
-          title: "Analysis Complete",
-          description: (
-            <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
-              Found {result.analysis.issues.length} issues to review. Click to view analysis.
-            </div>
-          ),
-          className: "bg-green-100 border-green-500",
-          duration: 7000,
-        });
-      }, 100);
-
-      onHtmlContentChange(editor.getHTML());
-      onAnalysis(result.analysis);
-      setAnalysis(result.analysis); // Update analysis state
+      toast({
+        title: "Analysis Complete",
+        description: (
+          <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
+            Found {result.analysis.issues.length} issues to review. Click to view analysis.
+          </div>
+        ),
+        className: "bg-green-100 border-green-500",
+        duration: 7000,
+      });
 
     } catch (error: any) {
       console.error('Analysis error:', error);
