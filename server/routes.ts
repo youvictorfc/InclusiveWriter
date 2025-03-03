@@ -60,7 +60,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.userId !== req.user.id) {
+      if (document.user_id !== req.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.userId !== req.user.id) {
+      if (document.user_id !== req.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.userId !== req.user.id) {
+      if (document.user_id !== req.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -183,7 +183,6 @@ export async function registerRoutes(app: Express) {
           suggestedMode: detectedMode as AnalysisMode,
           explanation: `It looks like you're analyzing ${contentType.type} content. ${contentType.explanation} You might get better results using the ${detectedMode} mode.`
         };
-        console.log('Created mode suggestion:', modeSuggestion); // Debug log
       }
 
       // Select the appropriate system prompt based on mode
@@ -300,7 +299,6 @@ export async function registerRoutes(app: Express) {
         modeSuggestion
       };
 
-      console.log('Sending response with modeSuggestion:', !!modeSuggestion); // Debug log
       res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);

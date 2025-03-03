@@ -1,76 +1,30 @@
-import { pgTable, text, serial, jsonb, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
 
-export const analyses = pgTable("analyses", {
-  id: serial("id").primaryKey(),
-  content: text("content").notNull(),
-  mode: text("mode").notNull(),
-  analysis: jsonb("analysis").notNull(),
-});
+export interface User {
+  id: number;
+  email: string;
+  supabase_id: string | null;
+  created_at: string;
+}
 
-export const insertAnalysisSchema = createInsertSchema(analyses).omit({
-  id: true,
-});
+export interface Document {
+  id: number;
+  user_id: number;
+  title: string;
+  content: string;
+  html_content: string;
+  analysis_mode: AnalysisMode | null;
+  analysis_result: AnalysisResult | null;
+  created_at: string;
+  updated_at: string;
+}
 
-export type Analysis = typeof analyses.$inferSelect;
-export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
-
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  supabaseId: text("supabase_id").unique(), 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const usersRelations = relations(users, ({ many }) => ({
-  documents: many(documents),
-}));
-
-export const documents = pgTable("documents", {
-  id: serial("id").primaryKey(),
-  userId: serial("user_id").references(() => users.id).notNull(),
-  title: varchar("title", { length: 255 }).notNull(),
-  content: text("content").notNull(),
-  htmlContent: text("html_content").notNull(),
-  analysisMode: text("analysis_mode"),
-  analysisResult: jsonb("analysis_result"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const documentsRelations = relations(documents, ({ one }) => ({
-  user: one(users, {
-    fields: [documents.userId],
-    references: [users.id],
-  }),
-}));
-
-export const insertUserSchema = createInsertSchema(users)
-  .omit({
-    id: true,
-    supabaseId: true,
-    createdAt: true,
-  })
-  .extend({
-    email: z.string().email("Please enter a valid email address"),
-  });
-
-export const insertDocumentSchema = createInsertSchema(documents)
-  .omit({
-    id: true,
-    userId: true,
-    createdAt: true,
-    updatedAt: true,
-    analysisMode: true,
-    analysisResult: true,
-  });
-
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Document = typeof documents.$inferSelect;
-export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+export interface Analysis {
+  id: number;
+  content: string;
+  mode: string;
+  analysis: AnalysisResult;
+}
 
 export type AnalysisMode = 'language' | 'policy' | 'recruitment';
 
@@ -85,6 +39,7 @@ export type AnalysisResult = {
   }>;
 };
 
+// Validation schemas
 export const analysisResultSchema = z.object({
   issues: z.array(
     z.object({
@@ -97,3 +52,18 @@ export const analysisResultSchema = z.object({
     })
   ),
 });
+
+export const documentSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(1, "Content is required"),
+  html_content: z.string().min(1, "HTML content is required"),
+  analysis_mode: z.enum(['language', 'policy', 'recruitment']).nullable(),
+  analysis_result: analysisResultSchema.nullable(),
+});
+
+export const userSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+export type InsertDocument = z.infer<typeof documentSchema>;
+export type InsertUser = z.infer<typeof userSchema>;
