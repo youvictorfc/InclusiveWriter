@@ -11,7 +11,10 @@ async function throwIfResNotOk(res: Response) {
 // Helper to extract auth token
 const getAuthToken = async () => {
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token;
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+  return session.access_token;
 };
 
 export async function apiRequest(
@@ -25,7 +28,7 @@ export async function apiRequest(
     method,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      "Authorization": `Bearer ${token}`,
     },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
@@ -41,21 +44,28 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const token = await getAuthToken();
+    try {
+      const token = await getAuthToken();
 
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-      headers: token ? {
-        "Authorization": `Bearer ${token}`
-      } : {},
-    });
+      const res = await fetch(queryKey[0] as string, {
+        credentials: "include",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      return await res.json();
+    } catch (error) {
+      if (error.message?.includes('Not authenticated') && unauthorizedBehavior === "returnNull") {
+        return null;
+      }
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

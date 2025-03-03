@@ -184,28 +184,17 @@ export function TextEditor({
 
     setAnalyzing(true);
     try {
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`
-        },
-        body: JSON.stringify({
-          content: currentContent,
-          mode
-        })
+      const result = await apiRequest('POST', '/api/analyze', {
+        content: currentContent,
+        mode
       });
 
-      if (!response.ok) {
-        throw new Error('Analysis failed');
-      }
-
-      const result = await response.json();
-      console.log('Analysis result:', result);
+      const data = await result.json();
+      console.log('Analysis result:', data);
 
       editor.commands.unsetHighlight();
 
-      result.analysis.issues.forEach(issue => {
+      data.analysis.issues.forEach(issue => {
         const text = editor.getText();
         const index = text.indexOf(issue.text);
         if (index !== -1) {
@@ -218,22 +207,22 @@ export function TextEditor({
       });
 
       onHtmlContentChange(editor.getHTML());
-      onAnalysis(result.analysis);
-      setAnalysis(result.analysis);
+      onAnalysis(data.analysis);
+      setAnalysis(data.analysis);
 
-      if (result.modeSuggestion) {
+      if (data.modeSuggestion) {
         toast({
           title: "Mode Suggestion",
           description: (
             <div className="space-y-2">
-              <p>{result.modeSuggestion.explanation}</p>
+              <p>{data.modeSuggestion.explanation}</p>
               <Button
                 variant="outline"
                 size="sm"
                 className="w-full mt-2 bg-white hover:bg-yellow-50"
-                onClick={() => setMode(result.modeSuggestion!.suggestedMode)}
+                onClick={() => setMode(data.modeSuggestion!.suggestedMode)}
               >
-                Switch to {result.modeSuggestion.suggestedMode} mode
+                Switch to {data.modeSuggestion.suggestedMode} mode
               </Button>
             </div>
           ),
@@ -246,7 +235,7 @@ export function TextEditor({
         title: "Analysis Complete",
         description: (
           <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
-            Found {result.analysis.issues.length} issues to review. Click to view analysis.
+            Found {data.analysis.issues.length} issues to review. Click to view analysis.
           </div>
         ),
         className: "bg-green-100 border-green-500",

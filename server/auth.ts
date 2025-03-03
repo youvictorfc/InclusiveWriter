@@ -39,24 +39,47 @@ export function setupAuth(app: Express) {
       const token = authHeader.replace('Bearer ', '');
       console.log('Verifying token...');
 
-      const { data: { user }, error } = await supabase.auth.getUser(token);
+      // Verify the JWT token with Supabase
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-      if (error || !user) {
-        console.error('Token verification failed:', error);
+      if (authError || !user) {
+        console.error('Token verification failed:', authError);
         req.isAuthenticated = () => false;
         return next();
       }
 
       console.log('Token verified, getting user data for:', user.id);
 
-      // Get the internal user ID from the users table
+      // Get user data from your users table
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id, email, supabase_id')
         .eq('supabase_id', user.id)
         .single();
 
-      if (userError || !userData) {
+      if (userError) {
+        // If user doesn't exist, create one
+        if (userError.code === 'PGRST116') {
+          const { data: newUser, error: createError } = await supabase
+            .from('users')
+            .insert({
+              email: user.email,
+              supabase_id: user.id
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Failed to create user:', createError);
+            req.isAuthenticated = () => false;
+            return next();
+          }
+
+          req.user = newUser;
+          req.isAuthenticated = () => true;
+          return next();
+        }
+
         console.error('Failed to get user data:', userError);
         req.isAuthenticated = () => false;
         return next();
