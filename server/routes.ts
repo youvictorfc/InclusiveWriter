@@ -25,7 +25,7 @@ export async function registerRoutes(app: Express) {
 
       const document = await storage.createDocument({
         ...req.body,
-        userId: req.user.id,
+        userId: req.user!.id,
       });
 
       res.json(document);
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const documents = await storage.getUserDocuments(req.user.id);
+      const documents = await storage.getUserDocuments(req.user!.id);
       res.json(documents);
     } catch (error) {
       console.error('Document fetch error:', error);
@@ -60,7 +60,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.user_id !== req.user.id) {
+      if (document.user_id !== req.user!.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.user_id !== req.user.id) {
+      if (document.user_id !== req.user!.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.user_id !== req.user.id) {
+      if (document.user_id !== req.user!.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -146,18 +146,6 @@ export async function registerRoutes(app: Express) {
               2. A recruitment document (job posting, job description, or hiring-related content)
               3. General text (any other type of content)
 
-              For policy documents, look for:
-              - Organizational rules and procedures
-              - Guidelines for employee behavior
-              - Company-wide standards
-              - Terms and conditions
-
-              For recruitment documents, look for:
-              - Job requirements and qualifications
-              - Position descriptions
-              - Hiring process details
-              - Candidate requirements
-
               Return the result in this exact JSON format:
               {
                 "type": "policy" | "recruitment" | "general",
@@ -173,7 +161,7 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const contentType = JSON.parse(contentTypeResponse.choices[0].message.content);
+      const contentType = JSON.parse(contentTypeResponse.choices[0].message.content || "{}");
       const detectedMode = contentType.type === 'general' ? 'language' : contentType.type;
       let modeSuggestion = null;
 
@@ -282,7 +270,7 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const analysisResult = JSON.parse(response.choices[0].message.content);
+      const analysisResult = JSON.parse(response.choices[0].message.content || "{}");
 
       // Create the analysis result with correct structure and include mode suggestion
       const result = {

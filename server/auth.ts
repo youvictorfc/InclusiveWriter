@@ -31,17 +31,23 @@ export function setupAuth(app: Express) {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
+        console.log('No authorization header found');
         req.isAuthenticated = () => false;
         return next();
       }
 
       const token = authHeader.replace('Bearer ', '');
+      console.log('Verifying token...');
+
       const { data: { user }, error } = await supabase.auth.getUser(token);
 
       if (error || !user) {
+        console.error('Token verification failed:', error);
         req.isAuthenticated = () => false;
         return next();
       }
+
+      console.log('Token verified, getting user data for:', user.id);
 
       // Get the internal user ID from the users table
       const { data: userData, error: userError } = await supabase
@@ -51,9 +57,12 @@ export function setupAuth(app: Express) {
         .single();
 
       if (userError || !userData) {
+        console.error('Failed to get user data:', userError);
         req.isAuthenticated = () => false;
         return next();
       }
+
+      console.log('User data retrieved:', { id: userData.id, email: userData.email });
 
       req.user = userData;
       req.isAuthenticated = () => true;

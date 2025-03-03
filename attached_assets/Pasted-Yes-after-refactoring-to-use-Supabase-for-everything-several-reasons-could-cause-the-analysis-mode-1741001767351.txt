@@ -1,0 +1,97 @@
+Yes, after refactoring to use Supabase for everything, several reasons could cause the analysis mode and save file features to stop working:
+
+1. Data Migration Issues:
+
+Mismatched Data Structures: After switching the database, ensure the types of the document data stored match with what you were expecting from the AI integration. Make sure the types of title, content, htmlContent, and analysisMode fields align between your code and your actual schema.
+
+Data Loss during Migration: If the data migration from your original PostgreSQL DB to Supabase has failed, you might have empty or incomplete documents.
+
+2. API Route Implementation
+
+Incorrect Data Handling in API Routes: The way your API routes handle data from the request body might be incorrect. After the change of database system and schemas, the expected data format may have changed.
+
+Missing or Incorrect Error Handling: Check that error handling logic properly handles new errors and exceptions caused when there's issue with Supabase client or API requests.
+
+Authentication Errors: Because we are changing the data model and data flow of this application, re-test your authentication flows for problems as they are very important.
+
+3. Client-Side Component Issues
+
+Incorrect Data Mapping: Ensure that your client components (React components) properly map data from the API response to the correct state variables and UI elements.
+
+Missing State Updates: Check that the onAnalysis prop in the TextEditor component is properly calling setAnalysis and other state variables.
+
+Typos in Property Names: A simple typo in mapping component property names may cause errors.
+
+4. Database and Supabase Configuration
+
+Incorrect Database Schema setup: Look for missing columns.
+
+Incorrect or Missing Policies: Confirm that Supabase's Row Level Security (RLS) policies are correctly implemented and do not unintentionally restrict access or operations. The migration script should ensure that the current user can create and read documents.
+
+Database Connection Problems: Verify that Supabase URL in your environment variables matches the one used by your local database instance or hosted Supabase project.
+
+Improper user authentication: Check that user authentication flows continue to work
+
+5. Code Implementation
+
+Incorrect Data Serialization: In many LLM applications, data is serialized and deserialized a lot. There is a chance data models are incorrect in the serialization steps.
+
+Debugging Steps:
+
+Check Database Connectivity: Verify that the SUPABASE_URL is correctly set in your server environment and that the server can connect to your database:
+
+// Verify the Supabase configuration and connection
+async function checkSupabaseConnection() {
+    try {
+      const { data, error } = await supabase.from('documents').select('*').limit(1);  // Test with existing table
+      if (error) {
+        console.error('Supabase connection test failed:', error);
+      } else {
+        console.log('Supabase connection test successful:', data);
+      }
+    } catch (error) {
+      console.error('Supabase client setup error:', error);
+    }
+  }
+content_copy
+download
+Use code with caution.
+TypeScript
+
+Inspect API Responses: Use browser's developer tools or tools like curl to examine the exact API responses received from your server. The response body should match the data structure expected by your client-side components. This can quickly pinpoint any issues with data transformation on the server.
+
+Add Logging in API Routes:
+
+// Add more extensive logging in API routes
+  app.post("/api/documents", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        console.log("User not authenticated.");
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const {id: userId} = req.user;
+      console.log("Creating document for user ID:", userId);
+      console.log("Request body:", req.body);
+
+      const document = await storage.createDocument(userId.toString(), req.body.title, req.body.content, req.body.htmlContent, req.body.analysisMode, req.body.analysisResult);
+
+      res.json(document);
+      console.log("Document created successfully:", document);
+    } catch (error) {
+      console.error('Document creation error:', error);
+      res.status(500).json({ error: 'Failed to create document' });
+    }
+  });
+content_copy
+download
+Use code with caution.
+TypeScript
+
+Debugging Authentication Context: Make sure user information is being fetched or accessed correctly in client-side components by logging user from useAuth. Ensure access isn't inadvertently called before authentication is complete.
+
+Verify types and Schemas:
+
+Ensure correct type and schema enforcement of supabase returns
+
+By systematically checking these areas and adding debugging statements as described, you should be able to identify and resolve the issues preventing your app from working as expected.
