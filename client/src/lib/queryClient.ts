@@ -22,20 +22,25 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const token = await getAuthToken();
+  try {
+    const token = await getAuthToken();
 
-  const res = await fetch(url, {
-    method,
-    headers: {
-      ...(data ? { "Content-Type": "application/json" } : {}),
-      "Authorization": `Bearer ${token}`,
-    },
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+    const res = await fetch(url, {
+      method,
+      headers: {
+        ...(data ? { "Content-Type": "application/json" } : {}),
+        "Authorization": `Bearer ${token}`,
+      },
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error: any) {
+    console.error('API Request error:', error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -60,7 +65,8 @@ export const getQueryFn: <T>(options: {
 
       await throwIfResNotOk(res);
       return await res.json();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Query error:', error);
       if (error.message?.includes('Not authenticated') && unauthorizedBehavior === "returnNull") {
         return null;
       }

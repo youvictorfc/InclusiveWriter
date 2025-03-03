@@ -79,11 +79,6 @@ export function TextEditor({
 
   const saveMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; htmlContent: string; analysisMode: AnalysisMode; analysisResult: AnalysisResult | null }) => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
         return response.json();
@@ -101,6 +96,7 @@ export function TextEditor({
       });
     },
     onError: (error: Error) => {
+      console.error('Save error:', error);
       toast({
         title: "Save Failed",
         description: error.message || "Failed to save document. Please try again.",
@@ -126,14 +122,6 @@ export function TextEditor({
     setSaving(true);
 
     try {
-      console.log('Saving document with content:', {
-        title,
-        content: text,
-        htmlContent: editor.getHTML(),
-        analysisMode: mode,
-        analysisResult: analysis,
-      });
-
       await saveMutation.mutateAsync({
         title,
         content: text,
@@ -141,8 +129,6 @@ export function TextEditor({
         analysisMode: mode,
         analysisResult: analysis,
       });
-
-      console.log('Document saved successfully');
     } catch (error) {
       console.error('Save error:', error);
     } finally {
@@ -172,29 +158,19 @@ export function TextEditor({
       return;
     }
 
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session?.access_token) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to analyze text.",
-        className: "bg-red-100 border-red-500",
-      });
-      return;
-    }
-
     setAnalyzing(true);
     try {
-      const result = await apiRequest('POST', '/api/analyze', {
+      const response = await apiRequest('POST', '/api/analyze', {
         content: currentContent,
         mode
       });
 
-      const data = await result.json();
+      const data = await response.json();
       console.log('Analysis result:', data);
 
       editor.commands.unsetHighlight();
 
-      data.analysis.issues.forEach(issue => {
+      data.analysis.issues.forEach((issue: any) => {
         const text = editor.getText();
         const index = text.indexOf(issue.text);
         if (index !== -1) {
