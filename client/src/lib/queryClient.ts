@@ -24,6 +24,7 @@ export async function apiRequest(
 ): Promise<Response> {
   try {
     const token = await getAuthToken();
+    console.log('Making API request with token:', token ? 'present' : 'missing');
 
     const res = await fetch(url, {
       method,
@@ -35,6 +36,7 @@ export async function apiRequest(
       credentials: "include",
     });
 
+    console.log('API Response status:', res.status);
     await throwIfResNotOk(res);
     return res;
   } catch (error: any) {
@@ -51,6 +53,7 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     try {
       const token = await getAuthToken();
+      console.log('Making query with token:', token ? 'present' : 'missing');
 
       const res = await fetch(queryKey[0] as string, {
         credentials: "include",
@@ -58,6 +61,8 @@ export const getQueryFn: <T>(options: {
           "Authorization": `Bearer ${token}`
         },
       });
+
+      console.log('Query Response status:', res.status);
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
         return null;

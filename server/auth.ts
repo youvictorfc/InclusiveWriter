@@ -60,6 +60,7 @@ export function setupAuth(app: Express) {
       if (userError) {
         // If user doesn't exist, create one
         if (userError.code === 'PGRST116') {
+          console.log('Creating new user record for:', user.email);
           const { data: newUser, error: createError } = await supabase
             .from('users')
             .insert({
@@ -85,8 +86,7 @@ export function setupAuth(app: Express) {
         return next();
       }
 
-      console.log('User data retrieved:', { id: userData.id, email: userData.email });
-
+      console.log('User data retrieved:', userData);
       req.user = userData;
       req.isAuthenticated = () => true;
       next();
