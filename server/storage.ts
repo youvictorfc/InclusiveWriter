@@ -78,6 +78,16 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createDocument(document: InsertDocument & { userId: number }): Promise<Document> {
+    const { data: userData } = await supabase
+      .from('users')
+      .select('supabase_id')
+      .eq('id', document.userId)
+      .single();
+
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
     const { data, error } = await supabase
       .from('documents')
       .insert({
@@ -96,7 +106,14 @@ export class SupabaseStorage implements IStorage {
   async getDocument(id: number): Promise<Document | undefined> {
     const { data, error } = await supabase
       .from('documents')
-      .select()
+      .select(`
+        *,
+        user:users (
+          id,
+          email,
+          supabase_id
+        )
+      `)
       .eq('id', id)
       .single();
 
@@ -110,7 +127,14 @@ export class SupabaseStorage implements IStorage {
   async getUserDocuments(userId: number): Promise<Document[]> {
     const { data, error } = await supabase
       .from('documents')
-      .select()
+      .select(`
+        *,
+        user:users (
+          id,
+          email,
+          supabase_id
+        )
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 

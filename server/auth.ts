@@ -11,6 +11,20 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Add type definitions for Express Request
+declare global {
+  namespace Express {
+    interface Request {
+      isAuthenticated(): boolean;
+      user?: {
+        id: number;
+        email: string;
+        supabase_id: string;
+      };
+    }
+  }
+}
+
 export function setupAuth(app: Express) {
   // Middleware to authenticate requests using Supabase JWT
   app.use(async (req, res, next) => {
@@ -32,7 +46,7 @@ export function setupAuth(app: Express) {
       // Get the internal user ID from the users table
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, email')
+        .select('id, email, supabase_id')
         .eq('supabase_id', user.id)
         .single();
 
@@ -83,7 +97,22 @@ export function setupAuth(app: Express) {
       if (error) {
         return res.status(401).json({ message: error.message });
       }
-      res.json({access_token: data.session.access_token});
+
+      // Get user data after successful login
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, email, supabase_id')
+        .eq('supabase_id', data.user.id)
+        .single();
+
+      if (userError || !userData) {
+        return res.status(500).json({ message: "Failed to get user data" });
+      }
+
+      res.json({
+        access_token: data.session.access_token,
+        user: userData
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -101,7 +130,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-    // Add new password change endpoint
   app.post("/api/change-password", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -109,13 +137,11 @@ export function setupAuth(app: Express) {
       }
 
       const { currentPassword, newPassword } = req.body;
-      const { user } = req;
 
-      const { data, error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: newPassword
-      }, {
-        token: req.headers.authorization?.replace('Bearer ', '')
       });
+
       if (error) {
         return res.status(400).json({ message: error.message });
       }
