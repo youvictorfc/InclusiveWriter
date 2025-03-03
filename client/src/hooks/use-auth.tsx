@@ -21,40 +21,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !session.user.email_confirmed_at) {
-        // If user is not verified, sign them out
-        supabase.auth.signOut();
-        setUser(null);
-      } else {
-        setUser(session?.user ?? null);
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        if (session?.user) {
+          if (!session.user.email_confirmed_at) {
+            // If user is not verified, sign them out
+            await supabase.auth.signOut();
+            setUser(null);
+            toast({
+              title: "Email verification required",
+              description: "Please check your email and verify your account before signing in.",
+              className: "bg-yellow-100 border-yellow-500",
+            });
+          } else {
+            setUser(session.user);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
+
+    checkSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
-        if (session?.user && !session.user.email_confirmed_at) {
-          // If user is not verified, sign them out
-          await supabase.auth.signOut();
-          setUser(null);
-          toast({
-            title: "Email not verified",
-            description: "Please verify your email address before signing in.",
-            className: "bg-yellow-100 border-yellow-500",
-          });
-        } else {
-          setUser(session?.user ?? null);
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (session?.user) {
+          if (!session.user.email_confirmed_at) {
+            await supabase.auth.signOut();
+            setUser(null);
+            toast({
+              title: "Email verification required",
+              description: "Please verify your email address before signing in.",
+              className: "bg-yellow-100 border-yellow-500",
+            });
+          } else {
+            setUser(session.user);
+          }
         }
-      } else {
-        setUser(session?.user ?? null);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
       }
+
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [toast]);
 
   const signIn = async (email: string, password: string) => {
@@ -97,6 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) throw error;
+
+      // Sign out immediately after registration
+      await supabase.auth.signOut();
+      setUser(null);
 
       toast({
         title: "Check your email",
