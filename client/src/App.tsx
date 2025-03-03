@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
+import AuthCallback from "@/pages/auth/callback";
 import Documents from "@/pages/documents";
 import Settings from "@/pages/settings";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -117,6 +118,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/auth/callback" component={AuthCallback} />
       <ProtectedRoute 
         path="/" 
         component={() => (

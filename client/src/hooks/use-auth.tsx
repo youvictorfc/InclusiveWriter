@@ -23,18 +23,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      if (session?.user && !session.user.email_confirmed_at) {
+        // If user is not verified, sign them out
+        supabase.auth.signOut();
+        setUser(null);
+      } else {
+        setUser(session?.user ?? null);
+      }
       setIsLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN') {
+        if (session?.user && !session.user.email_confirmed_at) {
+          // If user is not verified, sign them out
+          await supabase.auth.signOut();
+          setUser(null);
+          toast({
+            title: "Email not verified",
+            description: "Please verify your email address before signing in.",
+            className: "bg-yellow-100 border-yellow-500",
+          });
+        } else {
+          setUser(session?.user ?? null);
+        }
+      } else {
+        setUser(session?.user ?? null);
+      }
       setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [toast]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -44,6 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) throw error;
+
+      if (!data.user?.email_confirmed_at) {
+        await supabase.auth.signOut();
+        throw new Error("Please verify your email address before signing in.");
+      }
 
       toast({
         title: "Welcome back!",
@@ -74,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       toast({
         title: "Check your email",
-        description: "We've sent you a verification link to complete your registration.",
+        description: "We've sent you a verification link to complete your registration. Please verify your email address to sign in.",
         className: "bg-green-100 border-green-500",
       });
     } catch (error: any) {
