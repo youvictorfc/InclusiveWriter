@@ -8,18 +8,24 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Helper to extract auth token
+const getAuthToken = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token;
+};
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const token = await getAuthToken();
 
   const res = await fetch(url, {
     method,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
-      ...(session?.access_token ? { "Authorization": `Bearer ${session.access_token}` } : {}),
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
     },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
@@ -35,12 +41,12 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const token = await getAuthToken();
 
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
-      headers: session?.access_token ? {
-        "Authorization": `Bearer ${session.access_token}`
+      headers: token ? {
+        "Authorization": `Bearer ${token}`
       } : {},
     });
 
