@@ -19,13 +19,24 @@ export const supabase = createClient(
 );
 
 // Listen for auth state changes
-supabase.auth.onAuthStateChange((event, session) => {
+supabase.auth.onAuthStateChange(async (event, session) => {
   console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
 
   if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     // Store the session in localStorage
     if (session) {
       localStorage.setItem('supabase.auth.token', session.access_token);
+
+      // Ensure user exists in our database
+      const response = await fetch('/api/user', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Failed to verify user in database');
+      }
     }
   } else if (event === 'SIGNED_OUT') {
     // Clear the session from localStorage

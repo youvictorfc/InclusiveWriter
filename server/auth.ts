@@ -59,8 +59,19 @@ export function setupAuth(app: Express) {
 
       if (userError) {
         // If user doesn't exist, create one
-        if (userError.code === 'PGRST116') {
+        if (userError.code === 'PGRST116' || userError.message?.includes('does not exist')) {
           console.log('Creating new user record for:', user.email);
+
+          // Create users table if it doesn't exist
+          await supabase.schema.createTable('users', {
+            id: { type: 'serial', primaryKey: true },
+            email: { type: 'text', notNull: true },
+            supabase_id: { type: 'text', notNull: true, unique: true },
+            created_at: { type: 'timestamp', notNull: true, default: 'now()' }
+          }).catch(() => {
+            // Table might already exist, continue
+          });
+
           const { data: newUser, error: createError } = await supabase
             .from('users')
             .insert({
@@ -95,71 +106,6 @@ export function setupAuth(app: Express) {
       console.error('Auth middleware error:', error);
       req.isAuthenticated = () => false;
       next();
-    }
-  });
-
-  // API endpoints for authentication
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password
-      });
-
-      if (error) {
-        return res.status(400).json({ message: error.message });
-      }
-
-      res.status(201).json({ message: "Registration successful" });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        return res.status(401).json({ message: error.message });
-      }
-
-      // Get user data after successful login
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email, supabase_id')
-        .eq('supabase_id', data.user.id)
-        .single();
-
-      if (userError || !userData) {
-        return res.status(500).json({ message: "Failed to get user data" });
-      }
-
-      res.json({
-        access_token: data.session.access_token,
-        user: userData
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/logout", async (req, res) => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        return res.status(500).json({ message: error.message });
-      }
-      res.sendStatus(200);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
     }
   });
 
