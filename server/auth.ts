@@ -37,7 +37,7 @@ export function setupAuth(app: Express) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      console.log('Verifying token...');
+      console.log('Verifying token:', token.substring(0, 10) + '...');
 
       // Verify the JWT token with Supabase
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
@@ -76,6 +76,7 @@ export function setupAuth(app: Express) {
             return next();
           }
 
+          console.log('New user created:', newUser);
           req.user = newUser;
           req.isAuthenticated = () => true;
           return next();
@@ -97,23 +98,20 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Get current user endpoint
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    res.json(req.user);
-  });
-
+  // API endpoints for authentication
   app.post("/api/register", async (req, res) => {
     try {
+      const { email, password } = req.body;
+
       const { data, error } = await supabase.auth.signUp({
-        email: req.body.email,
-        password: req.body.password
+        email,
+        password
       });
+
       if (error) {
         return res.status(400).json({ message: error.message });
       }
+
       res.status(201).json({ message: "Registration successful" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -122,10 +120,13 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", async (req, res) => {
     try {
+      const { email, password } = req.body;
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: req.body.email,
-        password: req.body.password,
+        email,
+        password
       });
+
       if (error) {
         return res.status(401).json({ message: error.message });
       }
@@ -162,25 +163,10 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/change-password", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-
-      const { currentPassword, newPassword } = req.body;
-
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) {
-        return res.status(400).json({ message: error.message });
-      }
-
-      res.json({ message: "Password updated successfully" });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
+    res.json(req.user);
   });
 }

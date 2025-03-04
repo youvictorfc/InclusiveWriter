@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/use-auth';
 
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
@@ -35,6 +36,7 @@ export function TextEditor({
   setMode,
   documentId,
 }: TextEditorProps) {
+  const { user } = useAuth();
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
@@ -68,17 +70,16 @@ export function TextEditor({
 
   useEffect(() => {
     if (editor && !editor.isDestroyed && htmlContent) {
-      console.log('Setting editor content:', { htmlContent });
       editor.commands.setContent(htmlContent);
     }
   }, [editor, htmlContent]);
 
-  useEffect(() => {
-    console.log('TextEditor props updated:', { content, htmlContent, documentId });
-  }, [content, htmlContent, documentId]);
-
   const saveMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; htmlContent: string; analysisMode: AnalysisMode; analysisResult: AnalysisResult | null }) => {
+      if (!user) {
+        throw new Error('Please log in to save documents');
+      }
+
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
         return response.json();
@@ -113,6 +114,15 @@ export function TextEditor({
       toast({
         title: "Empty Content",
         description: "Please enter some text before saving.",
+        className: "bg-red-100 border-red-500",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save documents.",
         className: "bg-red-100 border-red-500",
       });
       return;
@@ -158,35 +168,21 @@ export function TextEditor({
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to analyze text.",
+        className: "bg-red-100 border-red-500",
+      });
+      return;
+    }
+
     setAnalyzing(true);
     try {
-      // First check if we have a valid session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to analyze text.",
-          className: "bg-red-100 border-red-500",
-        });
-        return;
-      }
-
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          content: currentContent,
-          mode
-        })
+      const response = await apiRequest('POST', '/api/analyze', {
+        content: currentContent,
+        mode
       });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || `Analysis failed with status ${response.status}`);
-      }
 
       const data = await response.json();
       console.log('Analysis result:', data);
