@@ -13,7 +13,10 @@ export const supabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      storage: window.localStorage
+      storage: window.localStorage,
+      // Add site URL for proper redirection
+      flowType: 'pkce',
+      redirectTo: window.location.origin
     }
   }
 );
