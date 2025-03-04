@@ -10,10 +10,20 @@ async function throwIfResNotOk(res: Response) {
 
 // Helper to extract auth token
 const getAuthToken = async () => {
+  // First try to get token from localStorage
+  const storedToken = localStorage.getItem('supabase.auth.token');
+  if (storedToken) {
+    return storedToken;
+  }
+
+  // If no stored token, get from current session
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
     throw new Error('Not authenticated');
   }
+
+  // Store the token for future use
+  localStorage.setItem('supabase.auth.token', session.access_token);
   return session.access_token;
 };
 
@@ -42,7 +52,7 @@ export async function apiRequest(
   } catch (error: any) {
     console.error('API Request error:', error);
     if (error.message.includes('Not authenticated')) {
-      // Redirect to login or handle authentication error
+      // Redirect to login
       window.location.href = '/auth';
       throw new Error('Please log in to continue');
     }

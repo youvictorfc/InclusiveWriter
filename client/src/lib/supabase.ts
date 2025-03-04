@@ -12,7 +12,8 @@ export const supabase = createClient(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storage: window.localStorage
     }
   }
 );
@@ -21,16 +22,21 @@ export const supabase = createClient(
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
 
-  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-    // Clear any user data from local storage
-    localStorage.removeItem('user');
-  } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-    // You can store minimal user info if needed
-    if (session?.user) {
-      localStorage.setItem('user', JSON.stringify({
-        id: session.user.id,
-        email: session.user.email
-      }));
+  if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    // Store the session in localStorage
+    if (session) {
+      localStorage.setItem('supabase.auth.token', session.access_token);
     }
+  } else if (event === 'SIGNED_OUT') {
+    // Clear the session from localStorage
+    localStorage.removeItem('supabase.auth.token');
+    window.location.href = '/auth';
+  }
+});
+
+// Initialize auth state
+supabase.auth.getSession().then(({ data: { session } }) => {
+  if (session) {
+    localStorage.setItem('supabase.auth.token', session.access_token);
   }
 });
