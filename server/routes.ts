@@ -12,17 +12,21 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 export async function registerRoutes(app: Express) {
   // Set up authentication routes first
   setupAuth(app);
 
-  app.post("/api/documents", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
+  // Middleware to check authentication
+  const requireAuth = (req: any, res: any, next: any) => {
+    if (!req.isAuthenticated()) {
+      console.log('Authentication check failed');
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    next();
+  };
 
+  app.post("/api/documents", requireAuth, async (req, res) => {
+    try {
       const document = await storage.createDocument({
         ...req.body,
         userId: req.user!.id,
@@ -35,12 +39,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/documents", async (req, res) => {
+  app.get("/api/documents", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
-
       const documents = await storage.getUserDocuments(req.user!.id);
       res.json(documents);
     } catch (error) {
@@ -49,12 +49,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/documents/:id", async (req, res) => {
+  app.get("/api/documents/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
-
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
@@ -71,12 +67,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/documents/:id", async (req, res) => {
+  app.patch("/api/documents/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
-
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
@@ -94,12 +86,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/documents/:id", async (req, res) => {
+  app.delete("/api/documents/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
-
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
@@ -117,7 +105,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/analyze", async (req, res) => {
+  app.post("/api/analyze", requireAuth, async (req, res) => {
     try {
       const { content, mode } = req.body;
 
@@ -128,11 +116,6 @@ export async function registerRoutes(app: Express) {
 
       if (!mode || !['language', 'policy', 'recruitment'].includes(mode)) {
         throw new Error('Valid mode is required');
-      }
-
-      // Ensure user is authenticated
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Authentication required" });
       }
 
       // First, detect the content type
@@ -247,20 +230,19 @@ export async function registerRoutes(app: Express) {
           {
             role: "system",
             content: `${systemPrompt}
-
-            Return the results in this exact JSON format:
-            {
-              "issues": [
-                {
-                  "text": "exact text found",
-                  "startIndex": 0,
-                  "endIndex": 0,
-                  "suggestion": "suggested replacement",
-                  "reason": "explanation of why this needs to be changed",
-                  "severity": "low" | "medium" | "high"
-                }
-              ]
-            }`
+              Return the results in this exact JSON format:
+              {
+                "issues": [
+                  {
+                    "text": "exact text found",
+                    "startIndex": 0,
+                    "endIndex": 0,
+                    "suggestion": "suggested replacement",
+                    "reason": "explanation of why this needs to be changed",
+                    "severity": "low" | "medium" | "high"
+                  }
+                ]
+              }`
           },
           {
             role: "user",
