@@ -23,23 +23,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session
+    // Check initial session and handle token refresh
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
 
         if (!mounted) return;
 
+        if (error) {
+          console.error('Error fetching session:', error);
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+
         if (session?.user) {
-          if (!session.user.email_confirmed_at) {
-            // If user is not verified, sign them out
-            await supabase.auth.signOut();
+          // Store the session token
+          localStorage.setItem('supabase.auth.token', session.access_token);
+
+          // Verify user exists in backend
+          const response = await fetch('/api/user', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+
+          if (!response.ok) {
+            console.error('Failed to verify user in backend');
             setUser(null);
-            toast({
-              title: "Email verification required",
-              description: "Please check your email and verify your account before signing in.",
-              className: "bg-yellow-100 border-yellow-500",
-            });
           } else {
             setUser(session.user);
           }
@@ -48,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('Session check error:', error);
+        setUser(null);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -55,25 +67,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkSession();
 
-    // Listen for auth changes
+    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
-          if (!session.user.email_confirmed_at) {
-            await supabase.auth.signOut();
+          // Store the new session token
+          localStorage.setItem('supabase.auth.token', session.access_token);
+
+          // Verify user in backend
+          const response = await fetch('/api/user', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+
+          if (!response.ok) {
+            console.error('Failed to verify user in backend');
             setUser(null);
             toast({
-              title: "Email verification required",
-              description: "Please verify your email address before signing in.",
-              className: "bg-yellow-100 border-yellow-500",
+              title: "Authentication Error",
+              description: "Failed to verify user. Please try logging in again.",
+              className: "bg-red-100 border-red-500",
             });
+            await supabase.auth.signOut();
           } else {
             setUser(session.user);
           }
         }
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        localStorage.removeItem('supabase.auth.token');
         setUser(null);
       }
 
@@ -88,17 +114,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      setError(null);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
-
-      if (!data.user?.email_confirmed_at) {
-        await supabase.auth.signOut();
-        throw new Error("Please verify your email address before signing in.");
-      }
 
       toast({
         title: "Welcome back!",
@@ -117,29 +139,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const siteUrl = import.meta.env.VITE_APP_URL;
-
-      if (!siteUrl) {
-        throw new Error("Application URL not configured");
-      }
-
+      setError(null);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${siteUrl}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (error) throw error;
 
-      // Sign out immediately after registration
-      await supabase.auth.signOut();
-      setUser(null);
-
       toast({
         title: "Check your email",
-        description: "We've sent you a verification link to complete your registration. Please verify your email address to sign in.",
+        description: "We've sent you a verification link to complete your registration.",
         className: "bg-green-100 border-green-500",
       });
     } catch (error: any) {
@@ -154,8 +167,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      setError(null);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+
+      // Clear local storage
+      localStorage.removeItem('supabase.auth.token');
 
       toast({
         title: "Signed out",
