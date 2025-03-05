@@ -62,21 +62,11 @@ export function setupAuth(app: Express) {
         if (userError.code === 'PGRST116' || userError.message?.includes('does not exist')) {
           console.log('Creating new user record for:', user.email);
 
-          // Create users table if it doesn't exist
-          await supabase.schema.createTable('users', {
-            id: { type: 'serial', primaryKey: true },
-            email: { type: 'text', notNull: true },
-            supabase_id: { type: 'text', notNull: true, unique: true },
-            created_at: { type: 'timestamp', notNull: true, default: 'now()' }
-          }).catch(() => {
-            // Table might already exist, continue
-          });
-
           const { data: newUser, error: createError } = await supabase
             .from('users')
             .insert({
               email: user.email,
-              supabase_id: user.id
+              supabase_id: user.id,
             })
             .select()
             .single();

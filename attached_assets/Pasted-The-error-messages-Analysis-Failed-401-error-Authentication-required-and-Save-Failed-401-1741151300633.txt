@@ -1,0 +1,52 @@
+The error messages "Analysis Failed: 401: {"error":"Authentication required"}" and "Save Failed: 401: {"error":"Authentication required"}" clearly indicate an authentication problem. These errors originate on the server and are being returned to the client, meaning:
+
+The client is not sending a valid JWT (or any JWT at all) in the Authorization header when making API requests to the server.
+
+Based on that, here's how we can more thoroughly debug authentication:
+
+1. Authorization Header in API Requests
+
+Token Retrieval: Put a breakpoint or logging statement in client/src/lib/queryClient.ts in getAuthToken to check token retrieval from localStorage is happening.
+
+const getAuthToken = async () => {
+  const token = localStorage.getItem('supabase.auth.token');
+  console.log('Getting token from localStorage:', token); // Add this log
+
+  // Rest of function
+}
+content_copy
+download
+Use code with caution.
+TypeScript
+
+Middleware Implementation: In server/auth.ts, confirm req.isAuthenticated is correctly implemented with Supabase’s RLS policies, and is correctly set up based on the authenticated status of the user.
+
+Expired or Missing Token: Verify if the token may be missing due to the getAuthToken logic.
+
+Add more logging
+
+2. Check the Token on both sides:
+
+Add logs to server/auth.ts to see the auth headers
+
+Add more verbose logging for user object/session details in useAuth hook.
+
+Here's a comprehensive list of what you might see. If you are getting certain values, or if you are seeing any of these, the problem is easier to fix.
+
+Code 401: There is a problem with the user token for whatever reason (unlikely). However, there is a chance that you should take this action to:
+
+Logout and log back in
+
+Call an API endpoint supabase.auth.refreshSession() to refresh the token.
+
+Review cookies setup on the server.
+
+Invalid JWT: The JWT you pulled from localStorage is either corrupted, or wrong for the service you are calling. This is unlikely but possible and a step to verify nonetheless.
+
+CORS Issues: Though unlikely, these problems can be hard to find and resolve. If the auth header fails due to CORS, it might be that:
+
+You're missing the correct headers on the backend.
+
+Your client configuration for CORS is wrong.
+
+Once you determine what type of token or authentication issue you're experiencing, we can fix it from there.
