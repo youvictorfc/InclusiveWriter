@@ -48,42 +48,49 @@ export function setupAuth(app: Express) {
 
       console.log('Token verified for user:', user.email);
 
-      // Try to get existing user
-      const { data: existingUser, error: getUserError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('supabase_id', user.id)
-        .single();
+      try {
+        // Try to get existing user
+        const { data: existingUser, error: getUserError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('supabase_id', user.id)
+          .single();
 
-      if (existingUser) {
-        console.log('Found existing user:', existingUser);
-        req.user = existingUser;
+        if (existingUser) {
+          console.log('Found existing user:', existingUser);
+          req.user = existingUser;
+          req.isAuthenticated = () => true;
+          return next();
+        }
+
+        // If user doesn't exist, create new user
+        console.log('Creating new user for:', user.email);
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert([{
+            email: user.email,
+            supabase_id: user.id
+          }])
+          .select()
+          .single();
+
+        if (createError || !newUser) {
+          console.error('Failed to create user:', createError);
+          req.isAuthenticated = () => false;
+          req.user = undefined;
+          return next();
+        }
+
+        console.log('New user created successfully:', newUser);
+        req.user = newUser;
         req.isAuthenticated = () => true;
-        return next();
-      }
-
-      // If user doesn't exist, create new user
-      console.log('Creating new user for:', user.email);
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert([{
-          email: user.email,
-          supabase_id: user.id
-        }])
-        .select()
-        .single();
-
-      if (createError || !newUser) {
-        console.error('Failed to create user:', createError);
+        next();
+      } catch (error) {
+        console.error('Database operation failed:', error);
         req.isAuthenticated = () => false;
         req.user = undefined;
-        return next();
+        next();
       }
-
-      console.log('New user created successfully:', newUser);
-      req.user = newUser;
-      req.isAuthenticated = () => true;
-      next();
     } catch (error) {
       console.error('Auth middleware error:', error);
       req.isAuthenticated = () => false;

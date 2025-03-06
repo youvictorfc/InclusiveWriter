@@ -18,13 +18,13 @@ const getAuthToken = async () => {
 
   // If no stored token, get from current session
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) {
-    throw new Error('Not authenticated');
+  if (session?.access_token) {
+    // Store the token for future use
+    localStorage.setItem('supabase.auth.token', session.access_token);
+    return session.access_token;
   }
 
-  // Store the token for future use
-  localStorage.setItem('supabase.auth.token', session.access_token);
-  return session.access_token;
+  throw new Error('Not authenticated');
 };
 
 export async function apiRequest(
@@ -43,7 +43,6 @@ export async function apiRequest(
         "Authorization": `Bearer ${token}`,
       },
       body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
     });
 
     console.log('API Response status:', res.status);
@@ -52,6 +51,8 @@ export async function apiRequest(
   } catch (error: any) {
     console.error('API Request error:', error);
     if (error.message.includes('Not authenticated')) {
+      // Clear any stale tokens
+      localStorage.removeItem('supabase.auth.token');
       // Redirect to login
       window.location.href = '/auth';
       throw new Error('Please log in to continue');
@@ -60,9 +61,8 @@ export async function apiRequest(
   }
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
+  on401: "returnNull" | "throw";
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
@@ -71,7 +71,6 @@ export const getQueryFn: <T>(options: {
       console.log('Making query with token:', token ? 'present' : 'missing');
 
       const res = await fetch(queryKey[0] as string, {
-        credentials: "include",
         headers: {
           "Authorization": `Bearer ${token}`
         },
