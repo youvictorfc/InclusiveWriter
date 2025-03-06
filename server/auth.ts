@@ -66,10 +66,10 @@ export function setupAuth(app: Express) {
       console.log('Creating new user for:', user.email);
       const { data: newUser, error: createError } = await supabase
         .from('users')
-        .insert({
+        .insert([{
           email: user.email,
-          supabase_id: user.id,
-        })
+          supabase_id: user.id
+        }])
         .select()
         .single();
 

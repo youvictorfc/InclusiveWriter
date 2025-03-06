@@ -23,7 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Check initial session and handle token refresh
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -33,27 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.error('Error fetching session:', error);
           setUser(null);
-          setIsLoading(false);
           return;
         }
 
         if (session?.user) {
+          setUser(session.user);
           // Store the session token
           localStorage.setItem('supabase.auth.token', session.access_token);
-
-          // Verify user exists in backend
-          const response = await fetch('/api/user', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
-
-          if (!response.ok) {
-            console.error('Failed to verify user in backend');
-            setUser(null);
-          } else {
-            setUser(session.user);
-          }
         } else {
           setUser(null);
         }
@@ -71,36 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
+      console.log('Auth state changed:', event, session?.user?.email);
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session?.user) {
-          // Store the new session token
-          localStorage.setItem('supabase.auth.token', session.access_token);
-
-          // Verify user in backend
-          const response = await fetch('/api/user', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
-
-          if (!response.ok) {
-            console.error('Failed to verify user in backend');
-            setUser(null);
-            toast({
-              title: "Authentication Error",
-              description: "Failed to verify user. Please try logging in again.",
-              className: "bg-red-100 border-red-500",
-            });
-            await supabase.auth.signOut();
-          } else {
-            setUser(session.user);
-          }
-        }
-      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        localStorage.removeItem('supabase.auth.token');
+      if (session?.user) {
+        setUser(session.user);
+        localStorage.setItem('supabase.auth.token', session.access_token);
+      } else {
         setUser(null);
+        localStorage.removeItem('supabase.auth.token');
       }
 
       setIsLoading(false);
@@ -110,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -122,12 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
+      if (data.session) {
+        localStorage.setItem('supabase.auth.token', data.session.access_token);
+      }
+
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
         className: "bg-green-100 border-green-500",
       });
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast({
         title: "Login failed",
         description: error.message,
@@ -156,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         className: "bg-green-100 border-green-500",
       });
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast({
         title: "Registration failed",
         description: error.message,
@@ -173,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Clear local storage
       localStorage.removeItem('supabase.auth.token');
+      setUser(null);
 
       toast({
         title: "Signed out",
@@ -180,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         className: "bg-green-100 border-green-500",
       });
     } catch (error: any) {
+      console.error('Sign out error:', error);
       toast({
         title: "Sign out failed",
         description: error.message,
