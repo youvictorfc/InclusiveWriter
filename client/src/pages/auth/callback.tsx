@@ -11,20 +11,17 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        console.log('Processing auth callback...');
-
         // Get the current URL parameters
         const params = new URLSearchParams(window.location.hash.substring(1));
         const error = params.get('error');
         const errorDescription = params.get('error_description');
 
         if (error) {
-          console.error('Auth callback error:', error, errorDescription);
           // Handle verification errors
           toast({
             title: "Verification Failed",
             description: errorDescription || "Failed to verify email. Please try again.",
-            variant: "destructive"
+            className: "bg-red-100 border-red-500",
           });
           setLocation('/auth');
           return;
@@ -33,13 +30,9 @@ export default function AuthCallback() {
         // Get the session from Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          throw sessionError;
-        }
+        if (sessionError) throw sessionError;
 
         if (session?.user?.email_confirmed_at) {
-          console.log('User verified successfully');
           // If the user is verified, show success message and redirect to home
           toast({
             title: "Email Verified",
@@ -48,7 +41,6 @@ export default function AuthCallback() {
           });
           setLocation('/');
         } else {
-          console.log('User verification pending');
           // If verification is pending, redirect to login
           toast({
             title: "Verification Required",
@@ -62,7 +54,7 @@ export default function AuthCallback() {
         toast({
           title: "Error",
           description: "An error occurred during verification. Please try again.",
-          variant: "destructive"
+          className: "bg-red-100 border-red-500",
         });
         setLocation('/auth');
       }
