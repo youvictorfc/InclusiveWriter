@@ -23,7 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Check initial session and handle token refresh
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -38,22 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (session?.user) {
-          // Store the session token
-          localStorage.setItem('supabase.auth.token', session.access_token);
-
-          // Verify user exists in backend
-          const response = await fetch('/api/user', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
-
-          if (!response.ok) {
-            console.error('Failed to verify user in backend');
-            setUser(null);
-          } else {
-            setUser(session.user);
-          }
+          setUser(session.user);
         } else {
           setUser(null);
         }
@@ -67,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkSession();
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
@@ -75,31 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
-          // Store the new session token
-          localStorage.setItem('supabase.auth.token', session.access_token);
-
-          // Verify user in backend
-          const response = await fetch('/api/user', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
-
-          if (!response.ok) {
-            console.error('Failed to verify user in backend');
-            setUser(null);
-            toast({
-              title: "Authentication Error",
-              description: "Failed to verify user. Please try logging in again.",
-              className: "bg-red-100 border-red-500",
-            });
-            await supabase.auth.signOut();
-          } else {
-            setUser(session.user);
-          }
+          setUser(session.user);
         }
       } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        localStorage.removeItem('supabase.auth.token');
         setUser(null);
       }
 
@@ -110,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -144,7 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${import.meta.env.VITE_APP_URL}/auth/callback`,
+          data: {
+            redirect_url: import.meta.env.VITE_APP_URL
+          }
         },
       });
 
@@ -171,7 +135,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
-      // Clear local storage
       localStorage.removeItem('supabase.auth.token');
 
       toast({

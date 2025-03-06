@@ -16,7 +16,7 @@ export const supabase = createClient(
       storage: window.localStorage,
       // Add site URL for proper redirection
       flowType: 'pkce',
-      redirectTo: window.location.origin
+      redirectTo: import.meta.env.VITE_APP_URL
     }
   }
 );
