@@ -1,5 +1,8 @@
 import { Express, Request, Response, NextFunction } from "express";
 import { createClient } from '@supabase/supabase-js';
+import { db } from './db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required");
@@ -15,7 +18,7 @@ declare global {
     interface Request {
       isAuthenticated(): boolean;
       user?: {
-        id: string;
+        id: number;  // Changed to number to match database schema
         email: string;
         supabase_id: string;
       };
@@ -49,40 +52,39 @@ export function setupAuth(app: Express) {
       console.log('Token verified for user:', user.email);
 
       try {
-        // Try to get existing user
-        const { data: existingUser, error: getUserError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('supabase_id', user.id)
-          .single();
+        // Try to get existing user from our database
+        const existingUser = await db.select().from(users).where(eq(users.supabase_id, user.id));
 
-        if (existingUser) {
-          console.log('Found existing user:', existingUser);
-          req.user = existingUser;
+        if (existingUser.length > 0) {
+          console.log('Found existing user:', existingUser[0]);
+          req.user = {
+            id: existingUser[0].id,
+            email: existingUser[0].email,
+            supabase_id: existingUser[0].supabase_id,
+          };
           req.isAuthenticated = () => true;
           return next();
         }
 
         // If user doesn't exist, create new user
         console.log('Creating new user for:', user.email);
-        const { data: newUser, error: createError } = await supabase
-          .from('users')
-          .insert([{
-            email: user.email,
-            supabase_id: user.id
-          }])
-          .select()
-          .single();
+        const newUsers = await db.insert(users).values({
+          email: user.email!,
+          supabase_id: user.id,
+        }).returning();
 
-        if (createError || !newUser) {
-          console.error('Failed to create user:', createError);
-          req.isAuthenticated = () => false;
-          req.user = undefined;
-          return next();
+        if (!newUsers.length) {
+          throw new Error('Failed to create user');
         }
 
+        const newUser = newUsers[0];
         console.log('New user created successfully:', newUser);
-        req.user = newUser;
+
+        req.user = {
+          id: newUser.id,
+          email: newUser.email,
+          supabase_id: newUser.supabase_id,
+        };
         req.isAuthenticated = () => true;
         next();
       } catch (error) {

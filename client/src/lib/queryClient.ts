@@ -3,28 +3,40 @@ import { supabase } from "./supabase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status}: ${text}`);
+    let errorMessage = `HTTP error! status: ${res.status}`;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // If JSON parsing fails, use the original error message
+    }
+    throw new Error(errorMessage);
   }
 }
 
 // Helper to extract auth token
 const getAuthToken = async () => {
-  // First try to get token from localStorage
-  const storedToken = localStorage.getItem('supabase.auth.token');
-  if (storedToken) {
-    return storedToken;
-  }
+  try {
+    // First try to get token from localStorage
+    const storedToken = localStorage.getItem('supabase.auth.token');
+    if (storedToken) {
+      return storedToken;
+    }
 
-  // If no stored token, get from current session
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    // Store the token for future use
-    localStorage.setItem('supabase.auth.token', session.access_token);
-    return session.access_token;
-  }
+    // If no stored token, get from current session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      // Store the token for future use
+      localStorage.setItem('supabase.auth.token', session.access_token);
+      return session.access_token;
+    }
 
-  throw new Error('Not authenticated');
+    throw new Error('Not authenticated');
+  } catch (error) {
+    console.error('Failed to get auth token:', error);
+    localStorage.removeItem('supabase.auth.token');
+    throw new Error('Not authenticated');
+  }
 };
 
 export async function apiRequest(
@@ -34,7 +46,7 @@ export async function apiRequest(
 ): Promise<Response> {
   try {
     const token = await getAuthToken();
-    console.log('Making API request with token:', token ? 'present' : 'missing');
+    console.log('Making API request:', method, url);
 
     const res = await fetch(url, {
       method,
@@ -45,18 +57,17 @@ export async function apiRequest(
       body: data ? JSON.stringify(data) : undefined,
     });
 
-    console.log('API Response status:', res.status);
+    if (res.status === 401) {
+      // Clear token and redirect to auth page on 401
+      localStorage.removeItem('supabase.auth.token');
+      window.location.href = '/auth';
+      throw new Error('Please log in to continue');
+    }
+
     await throwIfResNotOk(res);
     return res;
   } catch (error: any) {
     console.error('API Request error:', error);
-    if (error.message.includes('Not authenticated')) {
-      // Clear any stale tokens
-      localStorage.removeItem('supabase.auth.token');
-      // Redirect to login
-      window.location.href = '/auth';
-      throw new Error('Please log in to continue');
-    }
     throw error;
   }
 }
@@ -68,25 +79,29 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     try {
       const token = await getAuthToken();
-      console.log('Making query with token:', token ? 'present' : 'missing');
+      console.log('Making query:', queryKey[0]);
 
       const res = await fetch(queryKey[0] as string, {
         headers: {
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
         },
       });
 
-      console.log('Query Response status:', res.status);
-
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
+      if (res.status === 401) {
+        if (unauthorizedBehavior === "returnNull") {
+          return null;
+        }
+        // Clear token and redirect to auth page
+        localStorage.removeItem('supabase.auth.token');
+        window.location.href = '/auth';
+        throw new Error('Please log in to continue');
       }
 
       await throwIfResNotOk(res);
       return await res.json();
     } catch (error: any) {
       console.error('Query error:', error);
-      if (error.message?.includes('Not authenticated') && unauthorizedBehavior === "returnNull") {
+      if (error.message === 'Not authenticated' && unauthorizedBehavior === "returnNull") {
         return null;
       }
       throw error;
@@ -97,13 +112,14 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      retry: 1,
+      retryDelay: 1000,
+      staleTime: 30000,
+      gcTime: 3600000, // 1 hour - using gcTime instead of cacheTime for v5
     },
     mutations: {
-      retry: false,
+      retry: 1,
+      retryDelay: 1000,
     },
   },
 });
