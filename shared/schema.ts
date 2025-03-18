@@ -2,46 +2,6 @@ import { pgTable, text, serial, jsonb, timestamp, varchar, boolean } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const analyses = pgTable("analyses", {
-  id: serial("id").primaryKey(),
-  content: text("content").notNull(),
-  mode: text("mode").notNull(),
-  analysis: jsonb("analysis").notNull(),
-});
-
-export const insertAnalysisSchema = createInsertSchema(analyses).omit({
-  id: true,
-});
-
-export type Analysis = typeof analyses.$inferSelect;
-export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
-
-// Add documents table after analyses table
-export const documents = pgTable("documents", {
-  id: serial("id").primaryKey(),
-  userId: serial("user_id").references(() => users.id).notNull(),
-  title: varchar("title", { length: 255 }).notNull(),
-  content: text("content").notNull(),
-  htmlContent: text("html_content").notNull(),
-  analysisMode: text("analysis_mode"),
-  analysisResult: jsonb("analysis_result"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertDocumentSchema = createInsertSchema(documents).omit({
-  id: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true,
-  analysisMode: true,
-  analysisResult: true,
-});
-
-export type Document = typeof documents.$inferSelect;
-export type InsertDocument = z.infer<typeof insertDocumentSchema>;
-
-// Update users table with verification fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: varchar("username", { length: 50 }).notNull().unique(),
@@ -66,10 +26,50 @@ export const insertUserSchema = createInsertSchema(users)
   .extend({
     password: z.string().min(6, "Password must be at least 6 characters"),
     email: z.string().email("Please enter a valid email address"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
   });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// Keep other schema definitions unchanged
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
+  userId: serial("user_id").references(() => users.id).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  htmlContent: text("html_content").notNull(),
+  analysisMode: text("analysis_mode"),
+  analysisResult: jsonb("analysis_result"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDocumentSchema = createInsertSchema(documents).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+  analysisMode: true,
+  analysisResult: true,
+});
+
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+
+export const analyses = pgTable("analyses", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  mode: text("mode").notNull(),
+  analysis: jsonb("analysis").notNull(),
+});
+
+export const insertAnalysisSchema = createInsertSchema(analyses).omit({
+  id: true,
+});
+
+export type Analysis = typeof analyses.$inferSelect;
+export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
 
 export type AnalysisMode = 'language' | 'policy' | 'recruitment';
 
