@@ -1,170 +1,129 @@
-import { type Analysis, type InsertAnalysis, type User, type InsertUser, type Document, type InsertDocument } from "@shared/schema";
-import { createClient } from '@supabase/supabase-js';
-
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required");
-}
-
-// Create Supabase admin client with service role key
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { type Analysis, type InsertAnalysis, type User, type InsertUser, analyses, users } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
+import { type Document, type InsertDocument, documents } from "@shared/schema"; 
 
 export interface IStorage {
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
   getAnalysis(id: number): Promise<Analysis | undefined>;
+  createUser(user: InsertUser & {
+    passwordHash: string;
+    verificationToken: string;
+    verificationExpires: Date;
+    isVerified: boolean;
+  }): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  verifyUser(userId: number): Promise<User>;
   createDocument(document: InsertDocument & { userId: number }): Promise<Document>;
   getDocument(id: number): Promise<Document | undefined>;
   getUserDocuments(userId: number): Promise<Document[]>;
   updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document>;
+  updateUserPassword(userId: number, newPasswordHash: string): Promise<User>;
   deleteDocument(id: number): Promise<void>;
 }
 
-export class SupabaseStorage implements IStorage {
-  async createAnalysis(analysis: InsertAnalysis): Promise<Analysis> {
-    const { data, error } = await supabase
-      .from('analyses')
-      .insert(analysis)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+export class DatabaseStorage implements IStorage {
+  async createAnalysis(insertAnalysis: InsertAnalysis): Promise<Analysis> {
+    const [analysis] = await db.insert(analyses).values(insertAnalysis).returning();
+    return analysis;
   }
 
   async getAnalysis(id: number): Promise<Analysis | undefined> {
-    const { data, error } = await supabase
-      .from('analyses')
-      .select()
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return undefined;
-      throw error;
-    }
-    return data;
+    const [analysis] = await db.select().from(analyses).where(eq(analyses.id, id));
+    return analysis;
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const { data, error } = await supabase
-      .from('users')
-      .select()
-      .eq('id', id)
-      .single();
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
 
-    if (error) {
-      if (error.code === 'PGRST116') return undefined;
-      throw error;
-    }
-    return data;
+  async createUser(user: InsertUser & {
+    passwordHash: string;
+    verificationToken: string;
+    verificationExpires: Date;
+    isVerified: boolean;
+  }): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const { data, error } = await supabase
-      .from('users')
-      .select()
-      .eq('email', email)
-      .single();
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
 
-    if (error) {
-      if (error.code === 'PGRST116') return undefined;
-      throw error;
-    }
-    return data;
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.verificationToken, token));
+    return user;
+  }
+
+  async verifyUser(userId: number): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isVerified: true,
+        verificationToken: null,
+        verificationExpires: null
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 
   async createDocument(document: InsertDocument & { userId: number }): Promise<Document> {
-    const { data: userData } = await supabase
-      .from('users')
-      .select('supabase_id')
-      .eq('id', document.userId)
-      .single();
-
-    if (!userData) {
-      throw new Error('User not found');
-    }
-
-    const { data, error } = await supabase
-      .from('documents')
-      .insert({
-        ...document,
-        user_id: document.userId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const [newDocument] = await db.insert(documents).values(document).returning();
+    return newDocument;
   }
 
   async getDocument(id: number): Promise<Document | undefined> {
-    const { data, error } = await supabase
-      .from('documents')
-      .select(`
-        *,
-        user:users (
-          id,
-          email,
-          supabase_id
-        )
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return undefined;
-      throw error;
-    }
-    return data;
+    const [document] = await db.select().from(documents).where(eq(documents.id, id));
+    return document;
   }
 
   async getUserDocuments(userId: number): Promise<Document[]> {
-    const { data, error } = await supabase
-      .from('documents')
-      .select(`
-        *,
-        user:users (
-          id,
-          email,
-          supabase_id
-        )
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data;
+    return await db
+      .select()
+      .from(documents)
+      .where(eq(documents.userId, userId))
+      .orderBy(desc(documents.updatedAt));
   }
 
   async updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document> {
-    const { data, error } = await supabase
-      .from('documents')
-      .update({
+    const [updatedDocument] = await db
+      .update(documents)
+      .set({
         ...document,
-        updated_at: new Date().toISOString()
+        updatedAt: new Date(),
       })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+      .where(eq(documents.id, id))
+      .returning();
+    return updatedDocument;
   }
 
+  async updateUserPassword(userId: number, newPasswordHash: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        passwordHash: newPasswordHash,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
   async deleteDocument(id: number): Promise<void> {
-    const { error } = await supabase
-      .from('documents')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
+    await db
+      .delete(documents)
+      .where(eq(documents.id, id));
   }
 }
 
-export const storage = new SupabaseStorage();
+export const storage = new DatabaseStorage();

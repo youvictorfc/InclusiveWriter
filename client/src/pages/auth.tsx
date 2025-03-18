@@ -7,49 +7,48 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  username: z.string().min(1, "Username is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const registerSchema = loginSchema;
-
-type LoginForm = z.infer<typeof loginSchema>;
-type RegisterForm = z.infer<typeof registerSchema>;
-
 export default function AuthPage() {
-  const { user, signIn, signUp, isLoading: authLoading } = useAuth();
+  const { user, loginMutation, registerMutation } = useAuth();
 
   // Redirect to home if already logged in
   if (user) {
     return <Redirect to="/" />;
   }
 
-  const loginForm = useForm<LoginForm>({
+  const loginForm = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
 
-  const registerForm = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
+  const registerForm = useForm({
+    resolver: zodResolver(insertUserSchema.extend({
+      password: z.string().min(6, "Password must be at least 6 characters"),
+    })),
     defaultValues: {
+      username: "",
       email: "",
       password: "",
     },
   });
 
-  const onLogin = loginForm.handleSubmit(async (data) => {
-    await signIn(data.email, data.password);
+  const onLogin = loginForm.handleSubmit((data) => {
+    loginMutation.mutate(data);
   });
 
-  const onRegister = registerForm.handleSubmit(async (data) => {
-    await signUp(data.email, data.password);
+  const onRegister = registerForm.handleSubmit((data) => {
+    registerMutation.mutate(data);
   });
 
   return (
@@ -72,12 +71,12 @@ export default function AuthPage() {
                 <form onSubmit={onLogin} className="space-y-4">
                   <FormField
                     control={loginForm.control}
-                    name="email"
+                    name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Username</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="Enter your email" {...field} />
+                          <Input placeholder="Enter your username" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -96,8 +95,8 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={loginForm.formState.isSubmitting || authLoading}>
-                    {loginForm.formState.isSubmitting ? (
+                  <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                    {loginMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Logging in...
@@ -113,6 +112,19 @@ export default function AuthPage() {
             <TabsContent value="register">
               <Form {...registerForm}>
                 <form onSubmit={onRegister} className="space-y-4">
+                  <FormField
+                    control={registerForm.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Choose a username" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={registerForm.control}
                     name="email"
@@ -139,8 +151,8 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={registerForm.formState.isSubmitting || authLoading}>
-                    {registerForm.formState.isSubmitting ? (
+                  <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+                    {registerMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Creating account...

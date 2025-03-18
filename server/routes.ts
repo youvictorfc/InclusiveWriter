@@ -12,24 +12,20 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 export async function registerRoutes(app: Express) {
   // Set up authentication routes first
   setupAuth(app);
 
-  // Middleware to check authentication
-  const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated()) {
-      console.log('Authentication check failed');
-      return res.status(401).json({ error: "Authentication required" });
-    }
-    next();
-  };
-
-  app.post("/api/documents", requireAuth, async (req, res) => {
+  app.post("/api/documents", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const document = await storage.createDocument({
         ...req.body,
-        userId: req.user!.id,
+        userId: req.user.id,
       });
 
       res.json(document);
@@ -39,9 +35,13 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/documents", requireAuth, async (req, res) => {
+  app.get("/api/documents", async (req, res) => {
     try {
-      const documents = await storage.getUserDocuments(req.user!.id);
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const documents = await storage.getUserDocuments(req.user.id);
       res.json(documents);
     } catch (error) {
       console.error('Document fetch error:', error);
@@ -49,14 +49,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/documents/:id", requireAuth, async (req, res) => {
+  app.get("/api/documents/:id", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.user_id !== req.user!.id) {
+      if (document.userId !== req.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -67,14 +71,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/documents/:id", requireAuth, async (req, res) => {
+  app.patch("/api/documents/:id", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.user_id !== req.user!.id) {
+      if (document.userId !== req.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -86,14 +94,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/documents/:id", requireAuth, async (req, res) => {
+  app.delete("/api/documents/:id", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (document.user_id !== req.user!.id) {
+      if (document.userId !== req.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -105,7 +117,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/analyze", requireAuth, async (req, res) => {
+  app.post("/api/analyze", async (req, res) => {
     try {
       const { content, mode } = req.body;
 
@@ -118,6 +130,11 @@ export async function registerRoutes(app: Express) {
         throw new Error('Valid mode is required');
       }
 
+      // Ensure user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       // First, detect the content type
       const contentTypeResponse = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -128,6 +145,18 @@ export async function registerRoutes(app: Express) {
               1. A policy document (containing organizational guidelines, rules, or procedures)
               2. A recruitment document (job posting, job description, or hiring-related content)
               3. General text (any other type of content)
+
+              For policy documents, look for:
+              - Organizational rules and procedures
+              - Guidelines for employee behavior
+              - Company-wide standards
+              - Terms and conditions
+
+              For recruitment documents, look for:
+              - Job requirements and qualifications
+              - Position descriptions
+              - Hiring process details
+              - Candidate requirements
 
               Return the result in this exact JSON format:
               {
@@ -144,7 +173,7 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const contentType = JSON.parse(contentTypeResponse.choices[0].message.content || "{}");
+      const contentType = JSON.parse(contentTypeResponse.choices[0].message.content);
       const detectedMode = contentType.type === 'general' ? 'language' : contentType.type;
       let modeSuggestion = null;
 
@@ -154,6 +183,7 @@ export async function registerRoutes(app: Express) {
           suggestedMode: detectedMode as AnalysisMode,
           explanation: `It looks like you're analyzing ${contentType.type} content. ${contentType.explanation} You might get better results using the ${detectedMode} mode.`
         };
+        console.log('Created mode suggestion:', modeSuggestion); // Debug log
       }
 
       // Select the appropriate system prompt based on mode
@@ -230,19 +260,20 @@ export async function registerRoutes(app: Express) {
           {
             role: "system",
             content: `${systemPrompt}
-              Return the results in this exact JSON format:
-              {
-                "issues": [
-                  {
-                    "text": "exact text found",
-                    "startIndex": 0,
-                    "endIndex": 0,
-                    "suggestion": "suggested replacement",
-                    "reason": "explanation of why this needs to be changed",
-                    "severity": "low" | "medium" | "high"
-                  }
-                ]
-              }`
+
+            Return the results in this exact JSON format:
+            {
+              "issues": [
+                {
+                  "text": "exact text found",
+                  "startIndex": 0,
+                  "endIndex": 0,
+                  "suggestion": "suggested replacement",
+                  "reason": "explanation of why this needs to be changed",
+                  "severity": "low" | "medium" | "high"
+                }
+              ]
+            }`
           },
           {
             role: "user",
@@ -252,7 +283,7 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const analysisResult = JSON.parse(response.choices[0].message.content || "{}");
+      const analysisResult = JSON.parse(response.choices[0].message.content);
 
       // Create the analysis result with correct structure and include mode suggestion
       const result = {
@@ -269,6 +300,7 @@ export async function registerRoutes(app: Express) {
         modeSuggestion
       };
 
+      console.log('Sending response with modeSuggestion:', !!modeSuggestion); // Debug log
       res.json(result);
     } catch (error) {
       console.error('Analysis error:', error);

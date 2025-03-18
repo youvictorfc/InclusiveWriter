@@ -10,8 +10,6 @@ import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/use-auth';
 
 interface TextEditorProps {
   onAnalysis: (result: AnalysisResult) => void;
@@ -36,11 +34,10 @@ export function TextEditor({
   setMode,
   documentId,
 }: TextEditorProps) {
-  const { user } = useAuth();
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null); // Added state for analysis results
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -68,18 +65,21 @@ export function TextEditor({
     },
   });
 
+  // Update editor content when htmlContent prop changes
   useEffect(() => {
     if (editor && !editor.isDestroyed && htmlContent) {
+      console.log('Setting editor content:', { htmlContent });
       editor.commands.setContent(htmlContent);
     }
   }, [editor, htmlContent]);
 
+  // Log when component receives new props
+  useEffect(() => {
+    console.log('TextEditor props updated:', { content, htmlContent, documentId });
+  }, [content, htmlContent, documentId]);
+
   const saveMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; htmlContent: string; analysisMode: AnalysisMode; analysisResult: AnalysisResult | null }) => {
-      if (!user) {
-        throw new Error('Please log in to save documents');
-      }
-
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
         return response.json();
@@ -97,7 +97,6 @@ export function TextEditor({
       });
     },
     onError: (error: Error) => {
-      console.error('Save error:', error);
       toast({
         title: "Save Failed",
         description: error.message || "Failed to save document. Please try again.",
@@ -119,19 +118,18 @@ export function TextEditor({
       return;
     }
 
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to save documents.",
-        className: "bg-red-100 border-red-500",
-      });
-      return;
-    }
-
     const title = text.split('\n')[0].slice(0, 50) || 'Untitled Document';
     setSaving(true);
 
     try {
+      console.log('Saving document with content:', {
+        title,
+        content: text,
+        htmlContent: editor.getHTML(),
+        analysisMode: mode,
+        analysisResult: analysis,
+      });
+
       await saveMutation.mutateAsync({
         title,
         content: text,
@@ -139,6 +137,8 @@ export function TextEditor({
         analysisMode: mode,
         analysisResult: analysis,
       });
+
+      console.log('Document saved successfully');
     } catch (error) {
       console.error('Save error:', error);
     } finally {
@@ -168,32 +168,14 @@ export function TextEditor({
       return;
     }
 
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to analyze text.",
-        className: "bg-red-100 border-red-500",
-      });
-      return;
-    }
-
     setAnalyzing(true);
     try {
-      const response = await apiRequest('POST', '/api/analyze', {
-        content: currentContent,
-        mode
-      });
-
-      const data = await response.json();
-      console.log('Analysis result:', data);
-
-      if (!data.analysis || !Array.isArray(data.analysis.issues)) {
-        throw new Error('Invalid analysis response format');
-      }
+      const result = await analyzeText(currentContent, mode);
+      console.log('Analysis result:', result);
 
       editor.commands.unsetHighlight();
 
-      data.analysis.issues.forEach((issue: any) => {
+      result.analysis.issues.forEach(issue => {
         const text = editor.getText();
         const index = text.indexOf(issue.text);
         if (index !== -1) {
@@ -205,23 +187,20 @@ export function TextEditor({
         }
       });
 
-      onHtmlContentChange(editor.getHTML());
-      onAnalysis(data.analysis);
-      setAnalysis(data.analysis);
-
-      if (data.modeSuggestion) {
+      if (result.modeSuggestion) {
         toast({
+          id: "mode-suggestion",
           title: "Mode Suggestion",
           description: (
             <div className="space-y-2">
-              <p>{data.modeSuggestion.explanation}</p>
+              <p>{result.modeSuggestion.explanation}</p>
               <Button
                 variant="outline"
                 size="sm"
                 className="w-full mt-2 bg-white hover:bg-yellow-50"
-                onClick={() => setMode(data.modeSuggestion!.suggestedMode)}
+                onClick={() => setMode(result.modeSuggestion!.suggestedMode)}
               >
-                Switch to {data.modeSuggestion.suggestedMode} mode
+                Switch to {result.modeSuggestion.suggestedMode} mode
               </Button>
             </div>
           ),
@@ -230,16 +209,23 @@ export function TextEditor({
         });
       }
 
-      toast({
-        title: "Analysis Complete",
-        description: (
-          <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
-            Found {data.analysis.issues.length} issues to review. Click to view analysis.
-          </div>
-        ),
-        className: "bg-green-100 border-green-500",
-        duration: 7000,
-      });
+      setTimeout(() => {
+        toast({
+          id: "analysis-complete",
+          title: "Analysis Complete",
+          description: (
+            <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">
+              Found {result.analysis.issues.length} issues to review. Click to view analysis.
+            </div>
+          ),
+          className: "bg-green-100 border-green-500",
+          duration: 7000,
+        });
+      }, 100);
+
+      onHtmlContentChange(editor.getHTML());
+      onAnalysis(result.analysis);
+      setAnalysis(result.analysis); // Update analysis state
 
     } catch (error: any) {
       console.error('Analysis error:', error);
