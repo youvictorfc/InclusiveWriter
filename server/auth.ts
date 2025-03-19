@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import createMemoryStore from "memorystore";
+import { sendVerificationEmail } from "./email";
 
 const MemoryStore = createMemoryStore(session);
 const scryptAsync = promisify(scrypt);
@@ -28,6 +29,10 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+function generateVerificationToken(): string {
+  return randomBytes(32).toString("hex");
 }
 
 export function setupAuth(app: Express) {
@@ -55,6 +60,9 @@ export function setupAuth(app: Express) {
         const user = await storage.getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.passwordHash))) {
           return done(null, false, { message: "Invalid username or password" });
+        }
+        if (!user.isVerified) {
+          return done(null, false, { message: "Please verify your email address before logging in" });
         }
         return done(null, user);
       } catch (error) {
@@ -88,18 +96,55 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
+      const verificationToken = generateVerificationToken();
+      const verificationExpires = new Date();
+      verificationExpires.setHours(verificationExpires.getHours() + 24);
+
       const passwordHash = await hashPassword(req.body.password);
       const user = await storage.createUser({
         ...req.body,
         passwordHash,
-        isVerified: true //Always verified now
+        isVerified: false,
+        verificationToken,
+        verificationExpires,
       });
 
+      // Send verification email
+      await sendVerificationEmail(user, verificationToken);
+
       res.status(201).json({ 
-        message: "Registration successful. You can now log in.",
+        message: "Registration successful. Please check your email to verify your account.",
         username: user.username
       });
     } catch (error: any) {
+      console.error('Registration error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/verify-email", async (req, res) => {
+    try {
+      const { token } = req.query;
+
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+
+      const user = await storage.getUserByVerificationToken(token);
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      if (user.verificationExpires && new Date() > new Date(user.verificationExpires)) {
+        return res.status(400).json({ message: "Verification token has expired" });
+      }
+
+      await storage.verifyUser(user.id);
+
+      res.json({ message: "Email verified successfully. You can now log in." });
+    } catch (error: any) {
+      console.error('Verification error:', error);
       res.status(500).json({ message: error.message });
     }
   });
