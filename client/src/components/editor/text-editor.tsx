@@ -83,8 +83,8 @@ export function TextEditor({
       title: string; 
       content: string; 
       htmlContent: string; 
-      analysisMode?: AnalysisMode | null; 
-      analysisResult?: AnalysisResult | null 
+      analysisMode: AnalysisMode; 
+      analysisResult: AnalysisResult | null 
     }) => {
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
