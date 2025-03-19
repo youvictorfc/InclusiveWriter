@@ -131,7 +131,7 @@ export default function Documents() {
                       </Button>
                     </div>
 
-                    {expandedId === doc.id && doc.analysisResult && (
+                    {expandedId === doc.id && (
                       <div className="pt-4 border-t space-y-4">
                         <ScrollArea className="h-[400px] w-full rounded-md border p-4">
                           <div 
@@ -140,38 +140,40 @@ export default function Documents() {
                           />
                         </ScrollArea>
 
-                        <div className="mt-4">
-                          <h4 className="font-medium mb-2">Analysis Results ({doc.analysisMode} mode)</h4>
-                          <div className="space-y-2">
-                            {doc.analysisResult.issues.map((issue: any, index: number) => (
-                              <Card key={index} className="p-3">
-                                <div className="flex items-start gap-3">
-                                  <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                      <div className="cursor-help hover:opacity-80">
-                                        {getSeverityIcon(issue.severity)}
+                        {doc.analysisResult && (
+                          <div className="mt-4">
+                            <h4 className="font-medium mb-2">Analysis Results ({doc.analysisMode} mode)</h4>
+                            <div className="space-y-2">
+                              {doc.analysisResult.issues.map((issue: any, index: number) => (
+                                <Card key={index} className="p-3">
+                                  <div className="flex items-start gap-3">
+                                    <Tooltip delayDuration={0}>
+                                      <TooltipTrigger asChild>
+                                        <div className="cursor-help hover:opacity-80">
+                                          {getSeverityIcon(issue.severity)}
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent 
+                                        side="right"
+                                        className="p-3 max-w-[300px] bg-white border shadow-lg rounded-lg z-50"
+                                      >
+                                        {getSeverityDescription(issue.severity)}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    <div className="flex-1">
+                                      <div className="font-medium">Found: "{issue.text}"</div>
+                                      <div className="text-sm text-muted-foreground mt-1">{issue.reason}</div>
+                                      <div className="mt-2 text-sm">
+                                        <span className="font-medium">Suggestion: </span>
+                                        {issue.suggestion}
                                       </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent 
-                                      side="right"
-                                      className="p-3 max-w-[300px] bg-white border shadow-lg rounded-lg z-50"
-                                    >
-                                      {getSeverityDescription(issue.severity)}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  <div className="flex-1">
-                                    <div className="font-medium">Found: "{issue.text}"</div>
-                                    <div className="text-sm text-muted-foreground mt-1">{issue.reason}</div>
-                                    <div className="mt-2 text-sm">
-                                      <span className="font-medium">Suggestion: </span>
-                                      {issue.suggestion}
                                     </div>
                                   </div>
-                                </div>
-                              </Card>
-                            ))}
+                                </Card>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </div>
