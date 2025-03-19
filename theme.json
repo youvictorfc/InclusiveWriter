@@ -1,6 +1,6 @@
 {
   "variant": "vibrant",
-  "primary": "oklch(65% 0.2 280)",
+  "primary": "#E91E63",
   "appearance": "light",
   "radius": 0.75
 }
