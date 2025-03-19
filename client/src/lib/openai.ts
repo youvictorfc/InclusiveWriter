@@ -15,7 +15,21 @@ export async function analyzeText(content: string, mode: AnalysisMode): Promise<
       throw new Error("Content cannot be empty");
     }
 
-    const res = await apiRequest("POST", "/api/analyze", { content, mode });
+    // Add Australian compliance parameters
+    const params = {
+      content,
+      mode,
+      compliance: {
+        region: 'AU',
+        standards: [
+          'Australian English',
+          'Disability Act',
+          'Anti-discrimination Act'
+        ]
+      }
+    };
+
+    const res = await apiRequest("POST", "/api/analyze", params);
     if (!res.ok) {
       const errorData = await res.json();
       throw new Error(errorData.error || 'Analysis failed');
