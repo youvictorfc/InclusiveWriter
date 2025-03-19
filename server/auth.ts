@@ -110,7 +110,15 @@ export function setupAuth(app: Express) {
       });
 
       // Send verification email
-      await sendVerificationEmail(user, verificationToken);
+      try {
+        await sendVerificationEmail(user, verificationToken);
+      } catch (emailError) {
+        // If email fails, delete the created user and return error
+        await storage.deleteUser(user.id);
+        return res.status(500).json({ 
+          message: "Failed to send verification email. Please try registering again." 
+        });
+      }
 
       res.status(201).json({ 
         message: "Registration successful. Please check your email to verify your account.",

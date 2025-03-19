@@ -10,13 +10,17 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
+  tls: {
+    ciphers: 'SSLv3',
+    rejectUnauthorized: false // Accept self-signed certificates
+  }
 });
 
 export async function sendVerificationEmail(user: User, token: string) {
   const verificationUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"NOMW" <${process.env.EMAIL_USER}>`, // Add a friendly name
     to: user.email,
     subject: "Verify your email address",
     html: `
@@ -30,5 +34,10 @@ export async function sendVerificationEmail(user: User, token: string) {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Email sending error:', error);
+    throw new Error('Failed to send verification email. Please try again later.');
+  }
 }
