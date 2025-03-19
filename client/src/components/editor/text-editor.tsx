@@ -37,7 +37,7 @@ export function TextEditor({
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null); // Added state for analysis results
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null); 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -79,7 +79,13 @@ export function TextEditor({
   }, [content, htmlContent, documentId]);
 
   const saveMutation = useMutation({
-    mutationFn: async (data: { title: string; content: string; htmlContent: string; analysisMode: AnalysisMode; analysisResult: AnalysisResult | null }) => {
+    mutationFn: async (data: { 
+      title: string; 
+      content: string; 
+      htmlContent: string; 
+      analysisMode?: AnalysisMode | null; 
+      analysisResult?: AnalysisResult | null 
+    }) => {
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
         return response.json();
@@ -225,7 +231,7 @@ export function TextEditor({
 
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
-      setAnalysis(result.analysis); // Update analysis state
+      setAnalysis(result.analysis); 
 
     } catch (error: any) {
       console.error('Analysis error:', error);
