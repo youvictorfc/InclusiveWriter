@@ -23,6 +23,7 @@ export interface IStorage {
   updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document>;
   updateUserPassword(userId: number, newPasswordHash: string): Promise<User>;
   deleteDocument(id: number): Promise<void>;
+  deleteUser(id: number): Promise<void>; // Added deleteUser function
 }
 
 export class DatabaseStorage implements IStorage {
@@ -123,6 +124,11 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(documents)
       .where(eq(documents.id, id));
+  }
+  async deleteUser(id: number): Promise<void> {
+    await db
+      .delete(users)
+      .where(eq(users.id, id));
   }
 }
 
