@@ -86,11 +86,20 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res) => {
     try {
+      // Validate required fields
+      if (!req.body.username || !req.body.email || !req.body.password) {
+        return res.status(400).json({ 
+          message: "Username, email, and password are required." 
+        });
+      }
+
+      // Check existing user
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
       }
 
+      // Check existing email
       const existingEmail = await storage.getUserByEmail(req.body.email);
       if (existingEmail) {
         return res.status(400).json({ message: "Email already registered" });
@@ -101,22 +110,32 @@ export function setupAuth(app: Express) {
       verificationExpires.setHours(verificationExpires.getHours() + 24);
 
       const passwordHash = await hashPassword(req.body.password);
-      const user = await storage.createUser({
-        ...req.body,
-        passwordHash,
-        isVerified: false,
-        verificationToken,
-        verificationExpires,
-      });
+
+      let user;
+      try {
+        user = await storage.createUser({
+          ...req.body,
+          passwordHash,
+          isVerified: false,
+          verificationToken,
+          verificationExpires,
+        });
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        return res.status(500).json({ 
+          message: "Failed to create user account. Please try again." 
+        });
+      }
 
       // Send verification email
       try {
         await sendVerificationEmail(user, verificationToken);
       } catch (emailError) {
-        // If email fails, delete the created user and return error
+        console.error('Email error:', emailError);
+        // If email fails, delete the created user
         await storage.deleteUser(user.id);
         return res.status(500).json({ 
-          message: "Failed to send verification email. Please try registering again." 
+          message: emailError.message || "Failed to send verification email. Please try registering again." 
         });
       }
 
@@ -126,7 +145,9 @@ export function setupAuth(app: Express) {
       });
     } catch (error: any) {
       console.error('Registration error:', error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ 
+        message: "An unexpected error occurred. Please try again." 
+      });
     }
   });
 

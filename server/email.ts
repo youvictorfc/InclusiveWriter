@@ -10,23 +10,26 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
+  // Updated settings for Outlook/Office365
+  secureConnection: false,
   tls: {
     ciphers: 'SSLv3',
-    rejectUnauthorized: false // Accept self-signed certificates
-  }
+    rejectUnauthorized: false // Only for development
+  },
+  debug: true // Enable debugging
 });
 
 export async function sendVerificationEmail(user: User, token: string) {
   const verificationUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
 
   const mailOptions = {
-    from: `"NOMW" <${process.env.EMAIL_USER}>`, // Add a friendly name
+    from: `"NOMW" <${process.env.EMAIL_USER}>`,
     to: user.email,
     subject: "Verify your email address",
     html: `
       <h1>Welcome to NOMW!</h1>
       <p>Thank you for registering. Please verify your email address by clicking the link below:</p>
-      <a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #7c3aed; color: white; text-decoration: none; border-radius: 5px;">
+      <a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #E91E63; color: white; text-decoration: none; border-radius: 5px;">
         Verify Email Address
       </a>
       <p>If you did not create an account, please ignore this email.</p>
@@ -35,9 +38,21 @@ export async function sendVerificationEmail(user: User, token: string) {
   };
 
   try {
+    // Verify transporter connection first
+    await transporter.verify();
+
+    // Send email
     await transporter.sendMail(mailOptions);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Email sending error:', error);
-    throw new Error('Failed to send verification email. Please try again later.');
+
+    // More specific error messages
+    if (error.code === 'EAUTH') {
+      throw new Error('Failed to authenticate with email server. Please check email credentials.');
+    } else if (error.code === 'ESOCKET') {
+      throw new Error('Failed to connect to email server. Please check email server settings.');
+    } else {
+      throw new Error(`Failed to send verification email: ${error.message}`);
+    }
   }
 }
