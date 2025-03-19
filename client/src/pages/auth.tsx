@@ -9,11 +9,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  rememberMe: z.boolean().default(false),
 });
 
 export default function AuthPage() {
@@ -29,6 +32,7 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
+      rememberMe: false,
     },
   });
 
@@ -69,6 +73,14 @@ export default function AuthPage() {
             <TabsContent value="login">
               <Form {...loginForm}>
                 <form onSubmit={onLogin} className="space-y-4">
+                  {loginMutation.error && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        {loginMutation.error.message || "Invalid username or password"}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <FormField
                     control={loginForm.control}
                     name="username"
@@ -95,6 +107,21 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={loginForm.control}
+                    name="rememberMe"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <Checkbox 
+                            checked={field.value} 
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">Remember me</FormLabel>
+                      </FormItem>
+                    )}
+                  />
                   <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
                     {loginMutation.isPending ? (
                       <>
@@ -112,6 +139,14 @@ export default function AuthPage() {
             <TabsContent value="register">
               <Form {...registerForm}>
                 <form onSubmit={onRegister} className="space-y-4">
+                  {registerMutation.error && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        {registerMutation.error.message || "Registration failed. Please try again."}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <FormField
                     control={registerForm.control}
                     name="username"
