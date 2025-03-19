@@ -7,7 +7,6 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import createMemoryStore from "memorystore";
-import { sendVerificationEmail } from "./email";
 
 const MemoryStore = createMemoryStore(session);
 const scryptAsync = promisify(scrypt);
@@ -29,10 +28,6 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
-}
-
-function generateVerificationToken(): string {
-  return randomBytes(32).toString("hex");
 }
 
 export function setupAuth(app: Express) {
@@ -60,9 +55,6 @@ export function setupAuth(app: Express) {
         const user = await storage.getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.passwordHash))) {
           return done(null, false, { message: "Invalid username or password" });
-        }
-        if (!user.isVerified) {
-          return done(null, false, { message: "Please verify your email address before logging in" });
         }
         return done(null, user);
       } catch (error) {
@@ -105,88 +97,37 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
-      const verificationToken = generateVerificationToken();
-      const verificationExpires = new Date();
-      verificationExpires.setHours(verificationExpires.getHours() + 24);
-
       const passwordHash = await hashPassword(req.body.password);
 
-      let user;
-      try {
-        user = await storage.createUser({
-          ...req.body,
-          passwordHash,
-          isVerified: false,
-          verificationToken,
-          verificationExpires,
-        });
-      } catch (dbError) {
-        console.error('Database error:', dbError);
-        return res.status(500).json({ 
-          message: "Failed to create user account. Please try again." 
-        });
-      }
+      // Create user without verification
+      const user = await storage.createUser({
+        ...req.body,
+        passwordHash,
+        isVerified: true, // Set to true by default
+        verificationToken: null,
+        verificationExpires: null,
+      });
 
-      // Send verification email
-      try {
-        await sendVerificationEmail(user, verificationToken);
-      } catch (emailError: any) {
-        console.error('Email error:', emailError);
-        // If email fails, delete the created user
-        await storage.deleteUser(user.id);
-
-        // Provide more specific error messages based on the error type
-        if (emailError.code === 'EAUTH') {
+      // Log the user in automatically
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Login error:', err);
           return res.status(500).json({ 
-            message: "Email server authentication failed. Please contact support." 
-          });
-        } else if (emailError.code === 'ESOCKET') {
-          return res.status(500).json({ 
-            message: "Unable to connect to email server. Please try again later." 
-          });
-        } else {
-          return res.status(500).json({ 
-            message: "Failed to send verification email. Please try registering again." 
+            message: "Account created but couldn't log in automatically. Please try logging in." 
           });
         }
-      }
 
-      res.status(201).json({ 
-        message: "Registration successful. Please check your email to verify your account.",
-        username: user.username
+        res.status(201).json({ 
+          message: "Registration successful!",
+          username: user.username
+        });
       });
+
     } catch (error: any) {
       console.error('Registration error:', error);
       res.status(500).json({ 
         message: "An unexpected error occurred. Please try again." 
       });
-    }
-  });
-
-  app.get("/api/verify-email", async (req, res) => {
-    try {
-      const { token } = req.query;
-
-      if (!token || typeof token !== 'string') {
-        return res.status(400).json({ message: "Invalid verification token" });
-      }
-
-      const user = await storage.getUserByVerificationToken(token);
-
-      if (!user) {
-        return res.status(400).json({ message: "Invalid or expired verification token" });
-      }
-
-      if (user.verificationExpires && new Date() > new Date(user.verificationExpires)) {
-        return res.status(400).json({ message: "Verification token has expired" });
-      }
-
-      await storage.verifyUser(user.id);
-
-      res.json({ message: "Email verified successfully. You can now log in." });
-    } catch (error: any) {
-      console.error('Verification error:', error);
-      res.status(500).json({ message: error.message });
     }
   });
 
