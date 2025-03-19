@@ -32,7 +32,6 @@ export const insertUserSchema = createInsertSchema(users)
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
-// Keep other schema definitions unchanged
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
   userId: serial("user_id").references(() => users.id).notNull(),
