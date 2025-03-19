@@ -130,13 +130,25 @@ export function setupAuth(app: Express) {
       // Send verification email
       try {
         await sendVerificationEmail(user, verificationToken);
-      } catch (emailError) {
+      } catch (emailError: any) {
         console.error('Email error:', emailError);
         // If email fails, delete the created user
         await storage.deleteUser(user.id);
-        return res.status(500).json({ 
-          message: emailError.message || "Failed to send verification email. Please try registering again." 
-        });
+
+        // Provide more specific error messages based on the error type
+        if (emailError.code === 'EAUTH') {
+          return res.status(500).json({ 
+            message: "Email server authentication failed. Please contact support." 
+          });
+        } else if (emailError.code === 'ESOCKET') {
+          return res.status(500).json({ 
+            message: "Unable to connect to email server. Please try again later." 
+          });
+        } else {
+          return res.status(500).json({ 
+            message: "Failed to send verification email. Please try registering again." 
+          });
+        }
       }
 
       res.status(201).json({ 
