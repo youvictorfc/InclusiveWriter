@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { analyzeText } from '@/lib/openai';
 import { useState, useEffect } from 'react';
 import { type AnalysisResult, type AnalysisMode, type Document } from '@shared/schema';
-import { Loader2, Save, Trash2 } from 'lucide-react';
+import { Loader2, Save, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -295,7 +295,7 @@ export function TextEditor({
               className="text-muted-foreground"
               onClick={handleReset}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <RotateCcw className="h-4 w-4 mr-2" />
               Reset
             </Button>
           </div>
