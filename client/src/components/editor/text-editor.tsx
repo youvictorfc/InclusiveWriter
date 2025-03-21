@@ -45,8 +45,8 @@ export function TextEditor({
     extensions: [
       StarterKit.configure({
         history: {
-          depth: 100, // Increase history stack for better undo/redo
-          newGroupDelay: 500, // Reduce delay for new history groups
+          depth: 100,
+          newGroupDelay: 500,
         },
       }),
       Highlight.configure({
@@ -54,18 +54,16 @@ export function TextEditor({
       }),
     ],
     content: htmlContent || '<p></p>',
-    autofocus: true, // Enable autofocus
+    autofocus: 'end',
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
         placeholder: 'Enter your text here to analyze (10,000 words max)...'
       },
-      handleDOMEvents: {
-        paste: (view, event) => {
-          // Let the editor handle paste events normally
-          return false;
-        },
-      },
+      handleKeyDown: () => false,
+      handleClick: () => false,
+      handleDrop: () => false,
+      handlePaste: () => false,
     },
     onUpdate: ({ editor }) => {
       const text = editor.getText();
@@ -81,8 +79,7 @@ export function TextEditor({
   useEffect(() => {
     if (editor && !editor.isDestroyed && htmlContent) {
       editor.commands.setContent(htmlContent);
-      // Move cursor to start after content is set
-      editor.commands.focus('start');
+      editor.commands.focus();
     }
   }, [editor, htmlContent]);
 
@@ -247,10 +244,8 @@ export function TextEditor({
   const handleReset = () => {
     if (!editor) return;
 
-    // Clear editor content
     editor.commands.clearContent();
 
-    // Reset states
     setWordCount(0);
     setAnalysis(null);
     onAnalysis(null);
