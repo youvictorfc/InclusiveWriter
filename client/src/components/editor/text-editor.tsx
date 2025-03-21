@@ -43,27 +43,17 @@ export function TextEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        history: {
-          depth: 100,
-          newGroupDelay: 500,
-        },
-      }),
+      StarterKit,
       Highlight.configure({
         multicolor: true,
       }),
     ],
     content: htmlContent || '<p></p>',
-    autofocus: 'end',
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
         placeholder: 'Enter your text here to analyze (10,000 words max)...'
       },
-      handleKeyDown: () => false,
-      handleClick: () => false,
-      handleDrop: () => false,
-      handlePaste: () => false,
     },
     onUpdate: ({ editor }) => {
       const text = editor.getText();
@@ -78,10 +68,15 @@ export function TextEditor({
   // Update editor content when htmlContent prop changes
   useEffect(() => {
     if (editor && !editor.isDestroyed && htmlContent) {
+      console.log('Setting editor content:', { htmlContent });
       editor.commands.setContent(htmlContent);
-      editor.commands.focus();
     }
   }, [editor, htmlContent]);
+
+  // Log when component receives new props
+  useEffect(() => {
+    console.log('TextEditor props updated:', { content, htmlContent, documentId });
+  }, [content, htmlContent, documentId]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: {
@@ -133,6 +128,14 @@ export function TextEditor({
     setSaving(true);
 
     try {
+      console.log('Saving document with content:', {
+        title,
+        content: text,
+        htmlContent: editor.getHTML(),
+        analysisMode: mode,
+        analysisResult: analysis,
+      });
+
       await saveMutation.mutateAsync({
         title,
         content: text,
@@ -141,6 +144,7 @@ export function TextEditor({
         analysisResult: analysis,
       });
 
+      console.log('Document saved successfully');
     } catch (error) {
       console.error('Save error:', error);
     } finally {
@@ -244,8 +248,10 @@ export function TextEditor({
   const handleReset = () => {
     if (!editor) return;
 
+    // Clear editor content
     editor.commands.clearContent();
 
+    // Reset states
     setWordCount(0);
     setAnalysis(null);
     onAnalysis(null);
