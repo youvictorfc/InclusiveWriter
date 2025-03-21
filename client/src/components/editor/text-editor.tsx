@@ -43,16 +43,28 @@ export function TextEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        history: {
+          depth: 100, // Increase history stack for better undo/redo
+          newGroupDelay: 500, // Reduce delay for new history groups
+        },
+      }),
       Highlight.configure({
         multicolor: true,
       }),
     ],
     content: htmlContent || '<p></p>',
+    autofocus: true, // Enable autofocus
     editorProps: {
       attributes: {
         class: 'prose dark:prose-invert prose-sm focus:outline-none text-sm leading-relaxed max-w-none min-h-[400px] placeholder:text-muted-foreground',
         placeholder: 'Enter your text here to analyze (10,000 words max)...'
+      },
+      handleDOMEvents: {
+        paste: (view, event) => {
+          // Let the editor handle paste events normally
+          return false;
+        },
       },
     },
     onUpdate: ({ editor }) => {
@@ -68,15 +80,11 @@ export function TextEditor({
   // Update editor content when htmlContent prop changes
   useEffect(() => {
     if (editor && !editor.isDestroyed && htmlContent) {
-      console.log('Setting editor content:', { htmlContent });
       editor.commands.setContent(htmlContent);
+      // Move cursor to start after content is set
+      editor.commands.focus('start');
     }
   }, [editor, htmlContent]);
-
-  // Log when component receives new props
-  useEffect(() => {
-    console.log('TextEditor props updated:', { content, htmlContent, documentId });
-  }, [content, htmlContent, documentId]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: {
@@ -128,14 +136,6 @@ export function TextEditor({
     setSaving(true);
 
     try {
-      console.log('Saving document with content:', {
-        title,
-        content: text,
-        htmlContent: editor.getHTML(),
-        analysisMode: mode,
-        analysisResult: analysis,
-      });
-
       await saveMutation.mutateAsync({
         title,
         content: text,
@@ -144,7 +144,6 @@ export function TextEditor({
         analysisResult: analysis,
       });
 
-      console.log('Document saved successfully');
     } catch (error) {
       console.error('Save error:', error);
     } finally {
