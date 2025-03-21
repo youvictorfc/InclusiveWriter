@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { analyzeText } from '@/lib/openai';
 import { useState, useEffect } from 'react';
 import { type AnalysisResult, type AnalysisMode, type Document } from '@shared/schema';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -37,7 +37,7 @@ export function TextEditor({
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null); 
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -79,12 +79,12 @@ export function TextEditor({
   }, [content, htmlContent, documentId]);
 
   const saveMutation = useMutation({
-    mutationFn: async (data: { 
-      title: string; 
-      content: string; 
-      htmlContent: string; 
-      analysisMode: AnalysisMode; 
-      analysisResult: AnalysisResult | null 
+    mutationFn: async (data: {
+      title: string;
+      content: string;
+      htmlContent: string;
+      analysisMode: AnalysisMode;
+      analysisResult: AnalysisResult | null
     }) => {
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
@@ -231,7 +231,7 @@ export function TextEditor({
 
       onHtmlContentChange(editor.getHTML());
       onAnalysis(result.analysis);
-      setAnalysis(result.analysis); 
+      setAnalysis(result.analysis);
 
     } catch (error: any) {
       console.error('Analysis error:', error);
@@ -243,6 +243,26 @@ export function TextEditor({
     } finally {
       setAnalyzing(false);
     }
+  };
+
+  const handleReset = () => {
+    if (!editor) return;
+
+    // Clear editor content
+    editor.commands.clearContent();
+
+    // Reset states
+    setWordCount(0);
+    setAnalysis(null);
+    onAnalysis(null);
+    onContentChange('');
+    onHtmlContentChange('<p></p>');
+
+    toast({
+      title: "Editor Reset",
+      description: "The editor has been cleared.",
+      className: "bg-green-100 border-green-500",
+    });
   };
 
   return (
@@ -268,6 +288,15 @@ export function TextEditor({
                   Save
                 </>
               )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={handleReset}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Reset
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
