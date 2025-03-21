@@ -111,7 +111,7 @@ export function TextEditor({
     },
   });
 
-  const handleSave = async () => {
+  async function handleSave() {
     if (!editor) return;
 
     const text = editor.getText().trim();
@@ -150,7 +150,7 @@ export function TextEditor({
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   const analyze = async () => {
     if (!editor) return;
