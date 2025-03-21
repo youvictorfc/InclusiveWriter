@@ -226,14 +226,18 @@ You are an expert at analyzing language for inclusivity, with specific focus on 
 12. Diverse Representation
 13. Cultural Appropriation Awareness
 14. Must not assume old-fashioned views about gender roles
-15. Must comply with:
+15. Proper Australian English Usage:
+    - Use Australian spelling conventions (-ise, -our, -re)
+    - Use Australian terminology and expressions
+    - Avoid Americanisms and other non-Australian variants
+16. Must comply with:
     - Australian laws
     - Disability Discrimination Act
     - Anti-discrimination legislation
 
 For each issue found, provide:
 1. The exact problematic text
-2. A suggested alternative
+2. A suggested alternative using proper Australian English
 3. A clear explanation of why this needs to be changed
 4. The severity level (low, medium, or high)`;
           break;
@@ -261,7 +265,11 @@ You are an expert at analyzing organizational policies for inclusivity and fairn
 10. Monitoring & Reporting: Check compliance tracking responsibility
 11. Complaint & Feedback Mechanism: Verify clear reporting process
 12. Continuous Improvement: Check review and update process
-13. Additional Requirements:
+13. Australian English Standards:
+    - Use Australian spelling conventions (-ise, -our, -re)
+    - Use Australian terminology and expressions
+    - Avoid Americanisms and other non-Australian variants
+14. Additional Requirements:
     - Use kind and respectful language
     - Use human-centered language
     - Identify reasonable adjustments
@@ -282,7 +290,7 @@ Must comply with:
 
 For each issue found, provide:
 1. The exact policy text needing attention
-2. A suggested revision
+2. A suggested revision using proper Australian English
 3. An explanation of why this change improves inclusivity
 4. The severity level (low, medium, or high) based on impact`;
           break;
@@ -316,10 +324,14 @@ You are an expert at analyzing recruitment and job-related content for bias and 
     - Use "labour hire" instead of "temp agency"
     - Use "superannuation" instead of "401k"
     - Use "casual" instead of "part-time"
+14. Australian English Standards:
+    - Use Australian spelling conventions (-ise, -our, -re)
+    - Use Australian terminology and expressions
+    - Avoid Americanisms and other non-Australian variants
 
 For each issue found, provide:
 1. The exact text that may limit candidate diversity
-2. A suggested alternative
+2. A suggested alternative using proper Australian English
 3. An explanation of how this change promotes inclusive recruitment
 4. The severity level (low, medium, or high) based on potential impact on candidate pool`;
           break;
