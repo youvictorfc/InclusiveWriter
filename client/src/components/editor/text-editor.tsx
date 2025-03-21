@@ -244,23 +244,21 @@ export function TextEditor({
   const handleReset = () => {
     if (!editor) return;
 
-    if (confirm('Are you sure you want to clear the editor? This will also clear any analysis results.')) {
-      // Clear editor content
-      editor.commands.clearContent();
+    // Clear editor content
+    editor.commands.clearContent();
 
-      // Reset states
-      setWordCount(0);
-      setAnalysis(null);
-      onAnalysis(null);
-      onContentChange('');
-      onHtmlContentChange('<p></p>');
+    // Reset states
+    setWordCount(0);
+    setAnalysis(null);
+    onAnalysis(null);
+    onContentChange('');
+    onHtmlContentChange('<p></p>');
 
-      toast({
-        title: "Editor Reset",
-        description: "The editor has been cleared.",
-        className: "bg-green-100 border-green-500",
-      });
-    }
+    toast({
+      title: "Editor Reset",
+      description: "The editor has been cleared.",
+      className: "bg-green-100 border-green-500",
+    });
   };
 
   return (
