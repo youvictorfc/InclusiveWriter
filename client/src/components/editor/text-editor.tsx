@@ -65,7 +65,6 @@ export function TextEditor({
     },
   });
 
-  // Update editor content when htmlContent prop changes
   useEffect(() => {
     if (editor && !editor.isDestroyed && htmlContent) {
       console.log('Setting editor content:', { htmlContent });
@@ -73,7 +72,6 @@ export function TextEditor({
     }
   }, [editor, htmlContent]);
 
-  // Log when component receives new props
   useEffect(() => {
     console.log('TextEditor props updated:', { content, htmlContent, documentId });
   }, [content, htmlContent, documentId]);
@@ -84,7 +82,7 @@ export function TextEditor({
       content: string;
       htmlContent: string;
       analysisMode: AnalysisMode;
-      analysisResult: AnalysisResult | null
+      analysisResult: AnalysisResult | null;
     }) => {
       if (documentId) {
         const response = await apiRequest('PATCH', `/api/documents/${documentId}`, data);
@@ -195,7 +193,6 @@ export function TextEditor({
 
       if (result.modeSuggestion) {
         toast({
-          id: "mode-suggestion",
           title: "Mode Suggestion",
           description: (
             <div className="space-y-2">
@@ -217,7 +214,6 @@ export function TextEditor({
 
       setTimeout(() => {
         toast({
-          id: "analysis-complete",
           title: "Analysis Complete",
           description: (
             <div onClick={onShowAnalysis} className="cursor-pointer hover:underline text-green-700">

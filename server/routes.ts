@@ -23,10 +23,14 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
+      console.log('Creating document with data:', req.body); // Add logging
+
       const document = await storage.createDocument({
         ...req.body,
         userId: req.user.id,
       });
+
+      console.log('Document created:', document); // Add logging
 
       res.json(document);
     } catch (error) {
@@ -86,7 +90,12 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Access denied" });
       }
 
+      console.log('Updating document with data:', req.body); // Add logging
+
       const updatedDocument = await storage.updateDocument(document.id, req.body);
+
+      console.log('Document updated:', updatedDocument); // Add logging
+
       res.json(updatedDocument);
     } catch (error) {
       console.error('Document update error:', error);
